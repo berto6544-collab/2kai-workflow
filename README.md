@@ -20,19 +20,15 @@ A custom **React-based visual workflow builder** inspired by [n8n](https://n8n.i
 ---
 
 ## 🧱 Architecture Overview
-
 src/
 ├── components/
-│ ├── nodes.js # Node UI component
-│ └── PanelField.js # Renders dynamic form fields
+│   ├── nodes.js           # Renders individual node components (icon, color, config)
+│   └── PanelField.js      # Generates dynamic config forms for selected nodes
 ├── util/
-│ ├── util.js # Node execution function
-│ └── nodeArrays.js # Node types and config schema
-├── N8NWorkflowPlatform.js # Main app component
-└── App.js # App entry point
-
-
----
+│   ├── util.js            # Contains the logic to execute nodes in flow order
+│   └── nodeArrays.js      # Defines node types, schema, icons, and categories
+├── N8NWorkflowPlatform.js # Main app UI: canvas, panel, and node management
+└── App.js                 # App entry point that renders the workflow platform
 
 ## 🚀 Getting Started
 
@@ -66,6 +62,8 @@ Update nodeArrays.js to define a new node type:
   ]
 }
 
+
+
 Define its logic in util.js inside the NodeFunction handler.
 🔧 Customization Tips
 
@@ -76,6 +74,8 @@ Define its logic in util.js inside the NodeFunction handler.
     Saving Workflows: Use handleSave() to save to backend or localStorage.
 
     Undo/Redo: Not implemented yet — can be added via state stack management.
+
+    ```
 
 ⌨️ Keyboard Shortcuts
 Action	Shortcut
