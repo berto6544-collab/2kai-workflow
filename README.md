@@ -22,13 +22,13 @@ A custom **React-based visual workflow builder** inspired by [n8n](https://n8n.i
 ## 🧱 Architecture Overview
 src/
 ├── components/
-│   ├── nodes.js           # Renders individual node components (icon, color, config)
-│   └── PanelField.js      # Generates dynamic config forms for selected nodes
+│ ├── nodes.js # Renders individual node components (icon, color, config)
+│ └── PanelField.js # Generates dynamic config forms for selected nodes
 ├── util/
-│   ├── util.js            # Contains the logic to execute nodes in flow order
-│   └── nodeArrays.js      # Defines node types, schema, icons, and categories
+│ ├── util.js # Contains the logic to execute nodes in flow order
+│ └── nodeArrays.js # Defines node types, schema, icons, and categories
 ├── N8NWorkflowPlatform.js # Main app UI: canvas, panel, and node management
-└── App.js                 # App entry point that renders the workflow platform
+└── App.js # App entry point that renders the workflow platform
 
 
 ## 🚀 Getting Started
