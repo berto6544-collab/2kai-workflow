@@ -20,7 +20,7 @@ A custom **React-based visual workflow builder** inspired by [n8n](https://n8n.i
 ---
 
 ## 🧱 Architecture Overview
-src/\n
+src/
 ├── components/
 │ ├── nodes.js # Renders individual node components (icon, color, config)
 │ └── PanelField.js # Generates dynamic config forms for selected nodes
