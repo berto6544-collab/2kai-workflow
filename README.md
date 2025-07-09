@@ -62,7 +62,7 @@ Update nodeArrays.js to define a new node type:
     { name: 'apiUrl', type: 'text', label: 'API URL', value: '' }
   ]
 }
-
+```
 
 
 Define its logic in util.js inside the NodeFunction handler.
