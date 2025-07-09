@@ -221,7 +221,7 @@ const N8NWorkflowPlatform = () => {
       // Simulate execution time
       await new Promise(resolve => setTimeout(resolve, 1000));
 
-      let data = await NodeFunction(node,setNodes);
+      let data = await NodeFunction(node,setNodes,setIsExecuting);
       
       console.log(data)
 
@@ -328,7 +328,7 @@ const N8NWorkflowPlatform = () => {
       
 
       {/* Sidebar */}
-      <div className={`${sidebarCollapsed ? 'w-16' : 'w-80'} bg-[#131313] h-screen overflow-y-auto shadow-xl border-r border-gray-700 transition-all duration-300 relative`}>
+      <div className={`${sidebarCollapsed ? 'w-16' : 'w-80'} bg-[#131313] h-screen overflow-y-auto shadow-xl border-r border-gray-700 relative`}>
         <button
           onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
           className="absolute right-2 top-4 w-6 h-6 bg-gray-700 rounded-full flex items-center justify-center hover:bg-gray-600 transition-colors"

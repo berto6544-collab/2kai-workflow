@@ -151,30 +151,47 @@ const AuthHandler = async (node,setNodes) => {
   return 'Auth Check handler'
 }
 
-const httpHandler = async (node,setNodes) => {
+const httpHandler = async (node,setNodes,setIsExecuting) => {
         let dat = null;
        try{
         const data = await fetch(node.function?.url,{
           method:node?.function?.method
         });
         if(node.function.headers == "application/json"){
-          
-          dat = await data.json();
-          
-         return dat;
+         dat = await data.json();
         }else{
          dat = await data.text();
-        return dat;
         }
 
-        
+        errorHandler('success',setIsExecuting,setNodes,node,dat)
+
+        return dat;
      
       }catch(error){
         dat = error;
+        errorHandler('error',setIsExecuting,setNodes,node,dat)
+
         return dat
       }
 };
 
+const errorHandler = (status,setIsExecuting,setNodes,node,dat)=>{
+  if(status == "error"){
+ setNodes(prev => prev.map(n =>
+        n.id === node.id ? { ...n, status: 'error' } : n
+        ));
+        setIsExecuting(false);
+
+      }else{
+
+        setNodes(prev => prev.map(n =>
+        n.id === node.id ? { ...n, status: 'success' } : n
+        ));
+        
+        
+      }
+
+}
 
 export {
     triggerHandler,

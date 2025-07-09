@@ -50,62 +50,25 @@ npm run dev
 Visit http://localhost:5173 to view it in your browser.
 🧩 How to Add a Custom Node
 
-Update nodeArrays.js to define a new node type:
+Update nodeArrays.js to define a new nodeTypes:
 
-{
-  id: 'my-node',
-  name: 'My Node',
-  icon: SomeIcon,
-  color: 'from-indigo-500 to-indigo-600',
-  category: 'Custom',
-  config: [
-    { name: 'apiUrl', type: 'text', label: 'API URL', value: '' }
-  ]
+{ 
+    id: 'id', 
+    name: 'Name', 
+    icon: Icon, 
+    color: 'bg-yellow-500 text-black', 
+    category: 'Core' 
+}
+
+Update nodeArrays.js to define a new nodeConfiguration:
+configs = {
+      nodeType: [
+        { name: 'Name', label: 'Name', type: 'text',value:"", placeholder: 'Node Name', required: true },
+        { name: 'description', label: 'Description', type: 'textarea',value:"", placeholder: '' }
+      ]
 }
 
 
-
-Define its logic in util.js inside the NodeFunction handler.
-🔧 Customization Tips
-
-    Zoom Behavior: Update handleWheel to add pinch zoom or scroll sensitivity.
-
-    Node Output Display: Extend NodeComponent to show result/output in UI.
-
-    Saving Workflows: Use handleSave() to save to backend or localStorage.
-
-    Undo/Redo: Not implemented yet — can be added via state stack management.
-
-    ```
-
-⌨️ Keyboard Shortcuts
-Action	Shortcut
-Delete Node	Delete key
-Pan Canvas	Mouse drag
-Zoom In/Out	Mouse scroll
-Start Connection	Click "Connect Nodes" button
-Save Node Config	Click "Save" in panel
-🧪 Example Workflow
-
-    Drag a Trigger Node from the sidebar.
-
-    Connect it to a Webhook Node.
-
-    Select the webhook, configure its URL.
-
-    Press Execute.
-
-    Watch your flow animate through the nodes.
-
-📦 Dependencies
-
-    React – UI library
-
-    lucide-react – Icon set
-
-    Tailwind CSS – Styling framework
-
-    (Optional) Zustand or Redux for global state management if needed
 
 📄 License
 
