@@ -61,6 +61,7 @@ Update nodeArrays.js to define a new nodeTypes:
 }
 
 Update nodeArrays.js to define a new nodeConfiguration:
+
 configs = {
       nodeType: [
         { name: 'Name', label: 'Name', type: 'text',value:"", placeholder: 'Node Name', required: true },
