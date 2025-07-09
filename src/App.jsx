@@ -12,7 +12,7 @@ import { Home, TrendingUp, MessageCircle, Bot, ChartColumn } from 'lucide-react'
 import Cookies from 'js-cookie';
 
 
-const WorkFlow = React.lazy(() => import("./pages/work-flow-page/WorkflowTest"));
+const WorkFlow = React.lazy(() => import("./pages/work-flow-page/main"));
 const apiUrl = import.meta.env.VITE_API_URL;
 
 
