@@ -30,6 +30,7 @@ src/
 ├── N8NWorkflowPlatform.js # Main app UI: canvas, panel, and node management
 └── App.js                 # App entry point that renders the workflow platform
 
+
 ## 🚀 Getting Started
 
 ### 1. Clone the repository
