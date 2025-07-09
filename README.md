@@ -2,7 +2,7 @@
 
 A custom **React-based visual workflow builder** inspired by [n8n](https://n8n.io), allowing users to create, connect, and execute custom logic flows via a drag-and-drop node system.
 
-<img src="https://github.com/berto6544-collab/2kai-workflow/assets/Ui.png" width="100%"/>
+<img src="https://github.com/berto6544-collab/2kai-workflow/blob/main/src/assets/Ui.png" width="100%"/>
 
 ---
 
