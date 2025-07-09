@@ -51,31 +51,11 @@ Visit http://localhost:5173 to view it in your browser.
 
 Update nodeArrays.js to define a new nodeTypes:
 
-{ 
-    id: 'id',
-
-    name: 'Name', 
-    
-    icon: Icon, 
-    
-    color: 'bg-yellow-500 text-black', 
-    
-    category: 'Core' 
-}
+{ id: 'id', name: 'Name', icon: Icon, color: 'bg-yellow-500 text-black', category: 'Core' }
 
 Update nodeArrays.js to define a new nodeConfiguration:
 
-configs = {
-
-      nodeType: [
-
-        { name: 'Name', label: 'Name', type: 'text',value:"", placeholder: 'Node Name', required: true },
-        
-        { name: 'description', label: 'Description', type: 'textarea',value:"", placeholder: '' }
-      
-      ]
-
-}
+configs = {nodeType: [{ name: 'Name', label: 'Name', type: 'text',value:"", placeholder: 'Node Name', required: true },{ name: 'description', label: 'Description', type: 'textarea',value:"", placeholder: '' }]}
 
 
 
