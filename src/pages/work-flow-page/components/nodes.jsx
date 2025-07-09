@@ -47,6 +47,15 @@ const NodeComponent = ({ node, onNodeClick, onStartConnection, onDelete,handleNo
     setIsHolding(false);
   }, []);
   
+const onKeyDownNode = (e) =>{
+if (e.key === "Delete" && selectedNode) {
+  if(selectedNode.id == node.id){
+    const confirmed = window.confirm("Are you sure you want to delete this?");
+    if (confirmed) return onDelete(selectedNode.id);
+  }
+  }
+}
+
   // Attach global mouse listeners while dragging
   React.useEffect(() => {
     if (isDragging) {
@@ -63,6 +72,8 @@ const NodeComponent = ({ node, onNodeClick, onStartConnection, onDelete,handleNo
     };
   }, [isDragging, handleMouseMove, handleMouseUp]);
 
+
+
     const getStatusColor = (status) => {
       switch (status) {
         case 'running': return 'border-blue-400 shadow-blue-200';
@@ -72,25 +83,14 @@ const NodeComponent = ({ node, onNodeClick, onStartConnection, onDelete,handleNo
       }
     };
 
-   const keyDown = (e) => {
-    
-  if (e.key === "Delete" && selectedNode) {
-    const confirmed = window.confirm("Are you sure you want to delete this?");
-    if (confirmed) {
-      onDelete(selectedNode.id);
-
-    } else {
-      
-    }
-  }
-};
+   
 
     return (
-      <div
-        className={`absolute bg-[#131313] border-2 rounded-xl select-none ${getStatusColor(node.status)} ${isDragging ? 'opacity-75' : ''} ${isHolding ? 'cursor-grabbing' : 'cursor-grab'}`}
-        onKeyDown={keyDown}
+      <div 
+      className={`absolute`}
         ref={nodeRef}
         key={node.id}
+        tabIndex={0}
         onMouseDown={handleMouseDown}
         style={{ 
           left: node.x, 
@@ -100,12 +100,17 @@ const NodeComponent = ({ node, onNodeClick, onStartConnection, onDelete,handleNo
           transform: `scale(${scale})`,
           transformOrigin: 'top left'
         }}
-        
+        onKeyDown={onKeyDownNode}
         onClick={(e)=>{
             e.stopPropagation();
             onNodeClick(node)
             //handleNode(node)
         }}
+      
+      >
+      <div
+        className={`absolute bg-[#131313] h-full w-full border-2 rounded-xl select-none ${getStatusColor(node.status)} ${isDragging ? 'opacity-75' : ''} ${isHolding ? 'cursor-grabbing' : 'cursor-grab'}`}
+        
       >
         <div className="flex items-center justify-between p-4 h-full">
           <div className="flex items-center space-x-3">
@@ -121,6 +126,7 @@ const NodeComponent = ({ node, onNodeClick, onStartConnection, onDelete,handleNo
             
             <button
               className="node-action p-1 cursor-pointer text-gray-400 hover:text-yellow-400 transition-colors"
+              
               onClick={(e) => {
                 e.stopPropagation();
                 
@@ -155,6 +161,7 @@ const NodeComponent = ({ node, onNodeClick, onStartConnection, onDelete,handleNo
             </div>
           </div>
         )}
+      </div>
       </div>
     );
   };

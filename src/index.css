@@ -1,1 +1,4 @@
 @import "tailwindcss";
+circle{
+    pointer-events: none;
+}

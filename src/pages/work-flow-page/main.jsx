@@ -1,6 +1,6 @@
 import React, { useState, useRef, useCallback } from 'react';
 import { 
-  Play,Save, Search, MoreHorizontal, ChevronRight, RotateCcw,
+  Play,Save, Search, MoreHorizontal, ChevronRight, RotateCcw,Trash
 } from 'lucide-react';
 import NodeFunction  from './util/util';
 import NodeComponent from './components/nodes';
@@ -196,17 +196,40 @@ const N8NWorkflowPlatform = () => {
     return executionOrder;
   };
 
+
+  const deleteConnection = (connectionToDelete) => {
+  // Remove the connection from the connections array
+  setConnections(prev => prev.filter(conn => 
+    !(conn.fromX === connectionToDelete.fromX && 
+      conn.fromY === connectionToDelete.fromY && 
+      conn.toX === connectionToDelete.toX && 
+      conn.toY === connectionToDelete.toY)
+  ));
+  
+  //Updating node statuses back to 'idle' if they were part of execution chain
+ setNodes(prev => prev.map(node => ({
+    ...node,
+   status: 'idle'
+  })));
+  
+  
+};
+
+
+
+
+
   const executeWorkflow = async () => {
     setIsExecuting(true);
     
     // Get only connected nodes in proper execution order
     const executionOrder = getExecutionOrder();
     
-    if (executionOrder.length === 0) {
-      console.log("No connected nodes to execute");
-      setIsExecuting(false);
-      return;
-    }
+    //if (executionOrder.length === 0) {
+     // console.log("No connected nodes to execute");
+      //setIsExecuting(false);
+      //return;
+    //}
     
     console.log(`Executing ${executionOrder.length} connected nodes out of ${nodes.length} total nodes`);
     
@@ -233,6 +256,8 @@ const N8NWorkflowPlatform = () => {
     
     setIsExecuting(false);
   };
+
+
   const handleWheel = useCallback((e) => {
     e.preventDefault();
     const delta = e.deltaY > 0 ? 0.9 : 1.1;
@@ -241,31 +266,66 @@ const N8NWorkflowPlatform = () => {
 
   
 
-  const ConnectionLine = ({ connection }) => {
-    const path = `M ${connection.fromX * scale + canvasOffset.x} ${connection.fromY * scale + canvasOffset.y} 
-                  C ${(connection.fromX + 50) * scale + canvasOffset.x} ${connection.fromY * scale + canvasOffset.y} 
-                    ${(connection.toX - 50) * scale + canvasOffset.x} ${connection.toY * scale + canvasOffset.y} 
+  const ConnectionLine = ({ connection, onDelete }) => {
+    const path = `M ${connection.fromX * scale + canvasOffset.x} ${connection.fromY * scale + canvasOffset.y}
+                  C ${(connection.fromX + 50) * scale + canvasOffset.x} ${connection.fromY * scale + canvasOffset.y}
+                    ${(connection.toX - 50) * scale + canvasOffset.x} ${connection.toY * scale + canvasOffset.y}
                     ${connection.toX * scale + canvasOffset.x} ${connection.toY * scale + canvasOffset.y}`;
+   
+    // Calculate the midpoint of the connection line
+    const midX = ((connection.fromX + connection.toX) / 2) * scale + canvasOffset.x;
+    const midY = ((connection.fromY + connection.toY) / 2) * scale + canvasOffset.y;
     
+    const handleDeleteClick = (e) => {
+        e.stopPropagation();
+        if (onDelete) {
+            onDelete(connection);
+        }
+    };
+   
     return (
-      <g>
-        <path
-          d={path}
-          stroke="#4b5563"
-          strokeWidth={2 * scale}
-          fill="none"
-          className="pointer-events-none"
-        />
-        <circle
-          cx={connection.toX * scale + canvasOffset.x}
-          cy={connection.toY * scale + canvasOffset.y}
-          r={4 * scale}
-          fill="#3b82f6"
-          className="pointer-events-none"
-        />
-      </g>
+        <g >
+          
+            <path
+                d={path}
+                stroke="#4b5563"
+                strokeWidth={2 * scale}
+                fill="none"
+                className="pointer-events-none"
+            />
+           
+            <circle
+                cx={connection.toX * scale + canvasOffset.x}
+                cy={connection.toY * scale + canvasOffset.y}
+                r={4 * scale}
+                fill="#3b82f6"
+                className="pointer-events-none"
+            />
+            
+            {/* Delete button background circle */}
+            
+            <circle
+                cx={midX}
+                cy={midY}
+                r={12 * scale}
+                fill="#ef4444"
+                stroke="#4b5563"
+                className="cursor-pointer hover:fill-red-600 transition-colors"
+                style={{ pointerEvents: "all" }}
+                onClick={(e)=>{handleDeleteClick(e)}}
+            />
+            
+            {/* Trash/bin icon */}
+            <g transform={`translate(${midX - 7 * scale}, ${midY - 10 * scale}) scale(${scale})`}>
+                <path
+                    d="M3 6v10c0 .55.45 1 1 1h8c.55 0 1-.45 1-1V6H3zm2.5 9c-.28 0-.5-.22-.5-.5v-6c0-.28.22-.5.5-.5s.5.22.5.5v6c0 .28-.22.5-.5.5zm2 0c-.28 0-.5-.22-.5-.5v-6c0-.28.22-.5.5-.5s.5.22.5.5v6c0 .28-.22.5-.5.5zm2 0c-.28 0-.5-.22-.5-.5v-6c0-.28.22-.5.5-.5s.5.22.5.5v6c0 .28-.22.5-.5.5zM10.5 4L10 3.5C9.89 3.39 9.78 3.33 9.67 3.29L9.33 3.29C9.22 3.33 9.11 3.39 9 3.5L8.5 4H5.5C5.22 4 5 4.22 5 4.5S5.22 5 5.5 5H12.5C12.78 5 13 4.78 13 4.5S12.78 4 12.5 4H10.5z"
+                    fill="white"
+                    style={{ pointerEvents: "none" }}
+                />
+            </g>
+        </g>
     );
-  };
+};
 
   const handleNodeDrag = (id, pos) => {
     setNodes((prevNodes) =>
@@ -273,13 +333,13 @@ const N8NWorkflowPlatform = () => {
     );
   };
 
+
+
  // Handle save button click
   const handleSave = () => {
     if (!selectedNode) return;
     
     // Update the nodes array with the new configuration
-    
-    
     setNodes(prevNodes => 
       prevNodes.map(node => 
         node.id === selectedNode.id 
@@ -362,7 +422,7 @@ const N8NWorkflowPlatform = () => {
                 <input
                   type="text"
                   placeholder="Search nodes..."
-                  className="w-full pl-10 pr-4 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full pl-10 pr-4 py-2 bg-[#242121] border-1 border-gray-800 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 />
               </div>
             </div>
@@ -377,10 +437,10 @@ const N8NWorkflowPlatform = () => {
                     {nodeTypes.filter(node => node.category === category).map((nodeType) => {
                       const Icon = nodeType.icon;
                       return (
-                        <div className={`w-full flex items-center gap-2`}>
+                        <div className={`w-full flex items-center gap-2 group`}>
                         <div
                           key={nodeType.id}
-                          className="flex w-full items-center space-x-3 p-3 bg-[#1c1c1c] rounded-lg border-1 border-gray-600 cursor-grab hover:bg-[#2a2a2a] transition-all duration-200 hover:border-yellow-500 group"
+                          className="flex w-full items-center space-x-3 p-3  rounded-lg  cursor-grab hover:bg-[#2a2a2a] transition-all duration-200 hover:border-yellow-500"
                           draggable
                           onDragStart={() => handleNodeDragStart(nodeType)}
                           
@@ -503,7 +563,7 @@ const N8NWorkflowPlatform = () => {
             `,
             backgroundSize: `${25}px ${25}px`,
             backgroundPosition: `${canvasOffset.x}px ${canvasOffset.y}px`,
-            cursor: isPanning ? 'grabbing' : 'grab'
+            cursor: isPanning ? 'grabbing' : 'grab',
           }}
           onDragOver={(e) => e.preventDefault()}
           onDrop={handleCanvasDrop}
@@ -511,22 +571,22 @@ const N8NWorkflowPlatform = () => {
           onMouseDown={handleCanvasMouseDown}
           onMouseUp={handleCanvasMouseUp}
           onWheel={handleWheel}
+
         >
           <svg className="absolute inset-0 pointer-events-none" style={{ zIndex: 1,width:window.innerWidth / scale + canvasOffset.x ,height:window.innerHeight + 50 * scale + canvasOffset.y}}>
             {connections.map((connection) => (
-              <ConnectionLine key={connection.id} connection={connection} />
+              <ConnectionLine key={connection.id} onDelete={deleteConnection} connection={connection} />
             ))}
             
             {isConnecting && connectionStart && (
               <path
-                d={`M ${(connectionStart.x + 100) * scale + canvasOffset.x} ${(connectionStart.y + 50) * scale + canvasOffset.y} 
+                d={`M ${(connectionStart.x + 200) * scale + canvasOffset.x} ${(connectionStart.y + 50) * scale + canvasOffset.y} 
                     C ${(connectionStart.x + 150) * scale + canvasOffset.x} ${(connectionStart.y + 50) * scale + canvasOffset.y} 
                       ${mousePosition.x - 50} ${mousePosition.y} 
                       ${mousePosition.x} ${mousePosition.y}`}
-                stroke="#3b82f6"
-                strokeWidth={7 * scale}
+                stroke="#f0b100"
+                strokeWidth={3 * scale}
                 fill="none"
-                strokeDasharray={`${5 * scale},${5 * scale}`}
                 className="pointer-events-none"
               />
             )}

@@ -66,11 +66,11 @@ Update `nodeArrays.js` to define a new `nodeTypes` entry:
 
 ```javascript
 {
-  id: 'myCustomNode',
-  name: 'My Custom Node',
-  icon: CustomIcon,
-  color: 'bg-purple-500 text-white',
-  category: 'Custom'
+  id: 'uniqueId',        // Unique identifier
+  name: 'Display Name',   // Human-readable name
+  icon: IconComponent,    // React icon component
+  color: 'tailwind-classes', // Tailwind CSS classes for styling
+  category: 'Category'    // Grouping category
 }
 ```
 
@@ -82,20 +82,14 @@ Update `nodeArrays.js` to define a new `nodeConfiguration`:
 configs = {
   myCustomNode: [
     {
-      name: 'nodeName',
-      label: 'Node Name',
-      type: 'text',
-      value: '',
-      placeholder: 'Enter node name',
-      required: true
-    },
-    {
-      name: 'description',
-      label: 'Description',
-      type: 'textarea',
-      value: '',
-      placeholder: 'Enter description'
-    }
+  name: 'fieldName',      // Field identifier
+  label: 'Field Label',   // Display label
+  type: 'text|textarea|select|number', // Input type
+  value: '',              // Default value
+  placeholder: 'text',    // Placeholder text
+  required: true|false,   // Validation requirement
+  options: []             // For select type fields
+}
   ]
 }
 ```
@@ -152,7 +146,7 @@ Node types are defined in `src/util/nodeArrays.js` with the following structure:
 
 ### Key Files
 
-- `N8NWorkflowPlatform.js`: Main application component
+- `main.jsx`: Main application component
 - `nodes.js`: Individual node rendering logic
 - `PanelField.js`: Dynamic form field generation
 - `util.js`: Workflow execution engine

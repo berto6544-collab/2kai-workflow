@@ -151,43 +151,60 @@ const AuthHandler = async (node,setNodes) => {
   return 'Auth Check handler'
 }
 
+
 const httpHandler = async (node,setNodes,setIsExecuting) => {
         let dat = null;
-       try{
+       if(node?.function && node?.function?.url ){
+        try{
+       
+
         const data = await fetch(node.function?.url,{
-          method:node?.function?.method
+          method:node?.function?.method?node?.function?.method:'GET'
         });
+        
         if(node.function.headers == "application/json"){
          dat = await data.json();
         }else{
          dat = await data.text();
         }
+      await errorHandler('success',setIsExecuting,setNodes,node,dat)
+      return dat;
+      
+      
+        
 
-        errorHandler('success',setIsExecuting,setNodes,node,dat)
-
-        return dat;
+        
      
       }catch(error){
         dat = error;
-        errorHandler('error',setIsExecuting,setNodes,node,dat)
+       await errorHandler('error',setIsExecuting,setNodes,node,dat)
 
         return dat
+      }
+      
+    
+    }
+      
+      else{
+      return errorHandler('error',setIsExecuting,setNodes,node,dat)
+     
       }
 };
 
 const errorHandler = (status,setIsExecuting,setNodes,node,dat)=>{
+  
   if(status == "error"){
- setNodes(prev => prev.map(n =>
+        setNodes(prev => prev.map(n =>
         n.id === node.id ? { ...n, status: 'error' } : n
         ));
         setIsExecuting(false);
-
+        return dat;
       }else{
 
         setNodes(prev => prev.map(n =>
         n.id === node.id ? { ...n, status: 'success' } : n
         ));
-        
+
         
       }
 
