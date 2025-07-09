@@ -35,7 +35,7 @@ src/
 
 ### 1. Clone the repository
 
-```bash
+
 git clone https://github.com/your-username/2kai-workflow.git
 cd 2kai-workflow
 
@@ -62,7 +62,7 @@ Update nodeArrays.js to define a new node type:
     { name: 'apiUrl', type: 'text', label: 'API URL', value: '' }
   ]
 }
-```
+
 
 
 Define its logic in util.js inside the NodeFunction handler.
