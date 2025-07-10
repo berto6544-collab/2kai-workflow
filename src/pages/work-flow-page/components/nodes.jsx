@@ -51,7 +51,7 @@ const onKeyDownNode = (e) =>{
 if (e.key === "Delete" && selectedNode) {
   if(selectedNode.id == node.id){
     const confirmed = window.confirm("Are you sure you want to delete this?");
-    if (confirmed) return onDelete(selectedNode.id);
+    if (confirmed) return onDelete(selectedNode.id,node);
   }
   }
 }
@@ -132,7 +132,7 @@ if (e.key === "Delete" && selectedNode) {
               onClick={(e) => {
                 e.stopPropagation();
                 
-                onDelete(node.id);
+                onDelete(node.id,node);
                 
               }}
             >

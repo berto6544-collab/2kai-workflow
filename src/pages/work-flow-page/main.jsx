@@ -72,35 +72,68 @@ const N8NWorkflowPlatform = () => {
     setDraggedNode(nodeType);
   };
 
-  const handleCanvasDrop = (e) => {
+  const handleCanvasDrop = async(e) => {
     e.preventDefault();
     if (!draggedNode) return;
 
     const rect = canvasRef.current.getBoundingClientRect();
     const x = (e.clientX - rect.left - canvasOffset.x) / scale - 75;
     const y = (e.clientY - rect.top - canvasOffset.y) / scale - 40;
+    const randomString = Math.random().toString(36).substring(2, 10);
+    if(draggedNode.id == "webhook"){
+     
 
+      const newNode = {
+      id: `node-${nodeIdCounter.current++}`,
+      type: draggedNode.id,
+      name: draggedNode.name,
+      icon: draggedNode.icon,
+      color: draggedNode.color,
+      path:randomString,
+      x,
+      y,
+      config: getNodeConfig(draggedNode.id,randomString),
+      status: 'idle'
+    };
+  
+
+    console.log(newNode)
+    
+    setNodes(prev => [...prev, newNode]);
+    
+    const reg = await fetch("https://2kai-agent.com/app/register-webhook", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ path: randomString }),
+    }).then(res=>res.json())
+    console.log(reg);
+
+    }else{
     const newNode = {
       id: `node-${nodeIdCounter.current++}`,
       type: draggedNode.id,
       name: draggedNode.name,
       icon: draggedNode.icon,
       color: draggedNode.color,
+      path:null,
       x,
       y,
-      config: getNodeConfig(draggedNode.id),
+      config: getNodeConfig(draggedNode.id,randomString),
       status: 'idle'
     };
+  
 
     console.log(newNode)
     
     setNodes(prev => [...prev, newNode]);
+  }
     setDraggedNode(null);
   };
 
   const handleNodeClick = (node) => {
     if (isConnecting) {
       if (connectionStart && connectionStart.id !== node.id) {
+
         const newConnection = {
           id: `conn-${Date.now()}`,
           from: connectionStart.id,
@@ -126,10 +159,20 @@ const N8NWorkflowPlatform = () => {
     setConnectionStart(node);
   };
 
-  const deleteNode = (nodeId) => {
+  const deleteNode = async(nodeId,node) => {
+
     setNodes(prev => prev.filter(n => n.id !== nodeId));
     setConnections(prev => prev.filter(c => c.from !== nodeId && c.to !== nodeId));
     setSelectedNode(null);
+    const path = node.path;
+    if(path != null){
+     const data = await fetch('https://2kai-agent.com/app/webhook/'+path,{
+        method:'DELETE'
+      }).then(res =>res.json())
+      console.log(data)
+    }
+    
+   
   };
 
   

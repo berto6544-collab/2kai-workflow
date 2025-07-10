@@ -50,7 +50,7 @@
     { id: 'auth', name: 'Auth Check', icon: ShieldCheck, color: 'bg-yellow-500 text-black', category: 'Utility' },
   ];
  
- export const getNodeConfig = (nodeType) => {
+ export const getNodeConfig = (nodeType,randomstring) => {
     const configs = {
       trigger: [
         { name: 'triggerName', label: 'Trigger Name', type: 'text',value:"", placeholder: 'My Trigger', required: true },
@@ -66,8 +66,8 @@
         { name: 'active', label: 'Active', type: 'checkbox',value:"", defaultValue: true }
       ],
       webhook: [
-        { name: 'httpMethod', label: 'HTTP Method', type: 'select',value:"", options: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'], required: true },
-        { name: 'path', label: 'Path', type: 'text', placeholder: '/webhook',value:"", required: true },
+        { name: 'path', label: 'Path', type: 'text', placeholder: '/webhook',value:""+randomstring, required: true },
+        { name: 'httpMethod', label: 'HTTP Method', type: 'select',value:'', options: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'], required: true },
         { name: 'authentication', label: 'Authentication', type: 'select',value:"", options: ['None', 'API Key', 'Bearer', 'Basic Auth'] },
         { name: 'token', label: 'Auth Token', type: 'text', placeholder: 'Token',value:"", required: true },
         { name: 'responseFormat', label: 'Response Format', type: 'select',value:"", options: ['JSON', 'XML', 'Plain Text'] }
