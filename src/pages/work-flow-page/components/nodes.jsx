@@ -87,11 +87,12 @@ if (e.key === "Delete" && selectedNode) {
 
     return (
       <div 
-      className={`absolute`}
+      className={`absolute ${selectedNode?.id == node?.id ?"start-node":''}`}
         ref={nodeRef}
         key={node.id}
         tabIndex={0}
         onMouseDown={handleMouseDown}
+        
         style={{ 
           left: node.x, 
           top:  node.y, 
@@ -109,7 +110,8 @@ if (e.key === "Delete" && selectedNode) {
       
       >
       <div
-        className={`absolute bg-[#131313] h-full w-full border-2 rounded-xl select-none ${getStatusColor(node.status)} ${isDragging ? 'opacity-75' : ''} ${isHolding ? 'cursor-grabbing' : 'cursor-grab'}`}
+
+        className={`absolute bg-[#131313] h-full  w-full border-2 rounded-xl select-none ${getStatusColor(node.status)} ${isDragging ? 'opacity-75' : ''} ${isHolding ? 'cursor-grabbing' : 'cursor-grab'}`}
         
       >
         <div className="flex items-center justify-between p-4 h-full">

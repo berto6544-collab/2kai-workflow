@@ -119,6 +119,7 @@
         { name: 'options', label: 'Options', type: 'textarea',value:"", placeholder: '{"limit": 10}' }
       ],
       if: [
+        { name: 'status_type', label: 'Status Type', type: 'select',value:"", options: ['Failed', 'Success'], required: true },
         { name: 'condition', label: 'Condition', type: 'text',value:"", placeholder: '{{$json.status}} === "active"', required: true },
         { name: 'trueOutput', label: 'True Output', type: 'text',value:"", placeholder: 'Continue to next node' },
         { name: 'falseOutput', label: 'False Output', type: 'text',value:"", placeholder: 'Stop workflow' }

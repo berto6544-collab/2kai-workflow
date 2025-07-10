@@ -21,6 +21,7 @@ const N8NWorkflowPlatform = () => {
   const [activeTab, setActiveTab] = useState('nodes');
   const [selectedNodeType, setSelectedNodeType] = useState('trigger');
   const [formData, setFormData] = useState({});
+  const [isSaving,setIsSaving] = useState(false)
   
   // Pan and zoom states
   const [canvasOffset, setCanvasOffset] = useState({ x: 0, y: 0 });
@@ -156,7 +157,9 @@ const N8NWorkflowPlatform = () => {
 
   // Get only nodes that are part of connections
   const getConnectedNodes = () => {
-    return nodes.filter(node => hasConnections(node.id));
+    const data = nodes.filter(node => hasConnections(node.id));
+    console.log(data)
+    return data
   };
 
   // Get execution order based on connections
@@ -197,6 +200,120 @@ const N8NWorkflowPlatform = () => {
   };
 
 
+  
+const executeWorkflow = async () => {
+  setIsExecuting(true);
+  const executionOrder = getExecutionOrder();
+  
+  if (executionOrder.length === 0) {
+    console.log("No connected nodes to execute");
+    setIsExecuting(false);
+    return;
+  }
+ 
+  let i = 0;
+  let globalLoops = 0;
+  const maxGlobalLoops = 3; // Prevent infinite loops
+  let executionContext = {}; // Store data between nodes
+ 
+  while (i < executionOrder.length && globalLoops < maxGlobalLoops) {
+    const node = executionOrder[i];
+   
+    setNodes(prev =>
+      prev.map(n => (n.id === node.id ? { ...n, status: 'running' } : n))
+    );
+   
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    
+    // Execute the node function
+    const data = await NodeFunction(node, setNodes, setIsExecuting);
+    console.log(`Node ${node.id} returned:`, data);
+    
+    // Store the result in execution context
+    executionContext[node.id] = data;
+   
+    // Handle different node types and looping logic
+    if (node.type === 'http' && (data == null || data === 'error')) {
+      // HTTP request failed, find the loop target
+      const loopTarget = findLoopTarget(executionOrder, node.id);
+      
+      if (loopTarget !== -1) {
+        console.log(`HTTP request failed, looping back to index ${loopTarget}`);
+        
+        // Reset nodes status from loop target onwards
+        for (let j = loopTarget; j < executionOrder.length; j++) {
+          setNodes(prev =>
+            prev.map(n => (n.id === executionOrder[j].id ? { ...n, status: 'idle' } : n))
+          );
+        }
+        
+        i = loopTarget;
+        globalLoops++;
+        continue;
+      }
+    }
+    
+    // Handle IF nodes - check conditions
+    if (node.type === 'if') {
+      const conditionResult = evaluateCondition(node, executionContext);
+      
+      if (!conditionResult) {
+        // Condition failed, loop back to HTTP request or timeout
+        const loopTarget = findHTTPOrTimeoutNode(executionOrder, i);
+        
+        if (loopTarget !== -1) {
+          console.log(`IF condition failed, looping back to index ${loopTarget}`);
+          
+          // Reset nodes status from loop target onwards
+          for (let j = loopTarget; j < executionOrder.length; j++) {
+            setNodes(prev =>
+              prev.map(n => (n.id === executionOrder[j].id ? { ...n, status: 'idle' } : n))
+            );
+          }
+          
+          i = loopTarget;
+          globalLoops++;
+          continue;
+        }
+      }
+    }
+   
+    // Set final status based on result
+    const finalStatus = (data === "error" || data == null) ? 'error' : 'success';
+    setNodes(prev =>
+      prev.map(n => (n.id === node.id ? { ...n, status: finalStatus } : n))
+    );
+   
+    i++;
+  }
+  
+  if (globalLoops >= maxGlobalLoops) {
+    console.log("Maximum loops reached, stopping execution");
+    setNodes(prev =>
+      prev.map(n => ({ ...n, status: n.status === 'running' ? 'error' : n.status }))
+    );
+  }
+ 
+  setIsExecuting(false);
+};
+
+// Helper function to find where to loop back to
+const findLoopTarget = (executionOrder, currentNodeId) => {
+  const currentIndex = executionOrder.findIndex(n => n.id === currentNodeId);
+  
+  // Look backwards for timeout or manual trigger nodes
+  for (let i = currentIndex - 1; i >= 0; i--) {
+    const node = executionOrder[i];
+    if ( node?.type == "timeout") {
+      return i;
+    }
+  } 
+  
+  // If no timeout found, loop back to the beginning
+  return 0;
+};
+
+
   const deleteConnection = (connectionToDelete) => {
   // Remove the connection from the connections array
   setConnections(prev => prev.filter(conn => 
@@ -218,44 +335,6 @@ const N8NWorkflowPlatform = () => {
 
 
 
-
-  const executeWorkflow = async () => {
-    setIsExecuting(true);
-    
-    // Get only connected nodes in proper execution order
-    const executionOrder = getExecutionOrder();
-    
-    //if (executionOrder.length === 0) {
-     // console.log("No connected nodes to execute");
-      //setIsExecuting(false);
-      //return;
-    //}
-    
-    console.log(`Executing ${executionOrder.length} connected nodes out of ${nodes.length} total nodes`);
-    
-    for (let i = 0; i < executionOrder.length; i++) {
-      const node = executionOrder[i];
-      
-      // Set node status to running
-      setNodes(prev => prev.map(n =>
-        n.id === node.id ? { ...n, status: 'running' } : n
-      ));
-      
-      // Simulate execution time
-      await new Promise(resolve => setTimeout(resolve, 1000));
-
-      let data = await NodeFunction(node,setNodes,setIsExecuting);
-      
-      console.log(data)
-
-      // Set node status to success
-      setNodes(prev => prev.map(n =>
-        n.id === node.id ? { ...n, status: 'success' } : n
-      ));
-    }
-    
-    setIsExecuting(false);
-  };
 
 
   const handleWheel = useCallback((e) => {
@@ -339,6 +418,9 @@ const N8NWorkflowPlatform = () => {
   const handleSave = () => {
     if (!selectedNode) return;
     
+    setIsSaving(true)
+    
+    setTimeout(()=>{
     // Update the nodes array with the new configuration
     setNodes(prevNodes => 
       prevNodes.map(node => 
@@ -348,8 +430,8 @@ const N8NWorkflowPlatform = () => {
       ));
     console.log(nodes)
     
-    
-    //setFormData({})
+    },2000)
+    setIsSaving(false)
 
     // Optional: Show success message or close panel
     //alert('Configuration saved successfully!');
@@ -646,7 +728,7 @@ const N8NWorkflowPlatform = () => {
                 
         </div>
         <div  className={`flex gap-2 w-full items-center p-3`}>
-                <button onClick={()=>{handleSave();}} className={`w-full p-2 bg-yellow-600 hover:bg-yellow-500 text-black rounded-md`}>Save </button>
+                <button tabIndex={0} onClick={()=>{handleSave();}} className={`w-full p-2 bg-yellow-400 hover:bg-yellow-500 text-black rounded-md cursor-pointer disabled:bg-yellow-700`}>{isSaving==true?'Saving':'Save'}</button>
               </div>
         </div>
       )}

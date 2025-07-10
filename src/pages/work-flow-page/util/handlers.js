@@ -1,158 +1,163 @@
-const triggerHandler = async (node,setNodes) => {
+const triggerHandler = async (node,setNodes,setIsExecuting,data) => {
 await new Promise(resolve => setTimeout(resolve,1000));
 
 return "trigger";
 }
 
-const scheduleHandler = async (node,setNodes) => {
+const scheduleHandler = async (node,setNodes,setIsExecuting,data) => {
 
 return "schedule"
 }
 
-const timeOutHandler = async (node,setNodes) => {
+const timeOutHandler = async (node,setNodes,setIsExecuting,data) => {
 
   await new Promise(resolve => setTimeout(resolve, node?.function?node?.function.Timeout*1000:2000));
   return 'timeout handler'
 }
 
 
-const webHookHandler = async (node,setNodes) => {
+const webHookHandler = async (node,setNodes,setIsExecuting,data) => {
 
  
   return 'webHook handler'
 }
 
-const codeHandler = async (node,setNodes) => {
+const codeHandler = async (node,setNodes,setIsExecuting,data) => {
 
  
   return 'code handler'
 }
 
 
-const functionHandler = async (node,setNodes) => {
+const functionHandler = async (node,setNodes,setIsExecuting,data) => {
 
  
   return 'function'
 }
 
-const ifHandler = async (node,setNodes) => {
-
+const ifHandler = async (node,setNodes,setIsExecuting,data) => {
+  if(node?.function && node?.function.status_type == "Failed"){
+  return 'continue';
+  }else{
+  return data
+  }
+  
  
-  return 'if handler'
+  
 }
 
-const switchHandler = async (node,setNodes) => {
+const switchHandler = async (node,setNodes,setIsExecuting,data) => {
 
  
   return 'Switch handler'
 }
 
-const EmailHandler = async (node,setNodes) => {
+const EmailHandler = async (node,setNodes,setIsExecuting,data) => {
 
  
   return 'Email handler'
 }
 
-const SlackHandler = async (node,setNodes) => {
+const SlackHandler = async (node,setNodes,setIsExecuting,data) => {
 
  
   return 'Slack handler'
 }
 
-const SMSHandler = async (node,setNodes) => {
+const SMSHandler = async (node,setNodes,setIsExecuting,data) => {
 
  
   return 'Twilio SMS handler'
 }
 
-const DatabaseHandler = async (node,setNodes) => {
+const DatabaseHandler = async (node,setNodes,setIsExecuting,data) => {
 
  
   return 'MYSQL handler'
 }
 
-const PostgreSQLHandler = async (node,setNodes) => {
+const PostgreSQLHandler = async (node,setNodes,setIsExecuting,data) => {
 
  
   return 'PostgreSQL handler'
 }
 
-const MongoDBHandler = async (node,setNodes) => {
+const MongoDBHandler = async (node,setNodes,setIsExecuting,data) => {
 
  
   return 'MongoDB handler'
 }
 
-const HubSpotHandler = async (node,setNodes) => {
+const HubSpotHandler = async (node,setNodes,setIsExecuting,data) => {
 
  
   return 'HubSpot handler'
 }
 
-const MailChimpHandler = async (node,setNodes) => {
+const MailChimpHandler = async (node,setNodes,setIsExecuting,data) => {
 
  
   return 'MailChimp handler'
 }
 
 
-const AWSHandler = async (node,setNodes) => {
+const AWSHandler = async (node,setNodes,setIsExecuting,data) => {
 
  
   return 'AWS lambda handler'
 }
 
-const GitHubHandler = async (node,setNodes) => {
+const GitHubHandler = async (node,setNodes,setIsExecuting,data) => {
 
  
   return 'Github handler'
 }
 
 
-const OpenAIHandler = async (node,setNodes) => {
+const OpenAIHandler = async (node,setNodes,setIsExecuting,data) => {
 
  
   return 'OpenAI handler'
 }
 
-const StabilityAiHandler = async (node,setNodes) => {
+const StabilityAiHandler = async (node,setNodes,setIsExecuting,data) => {
 
  
   return 'Stability AI handler'
 }
 
-const GoogleDriveHandler = async (node,setNodes) => {
+const GoogleDriveHandler = async (node,setNodes,setIsExecuting,data) => {
 
  
   return 'Google Drive handler'
 }
 
-const DropBoxHandler = async (node,setNodes) => {
+const DropBoxHandler = async (node,setNodes,setIsExecuting,data) => {
 
  
   return 'Dropbox handler'
 }
 
-const VoiceHandler = async (node,setNodes) => {
+const VoiceHandler = async (node,setNodes,setIsExecuting,data) => {
 
  
   return 'Speach To Text handler'
 }
 
-const AnalyticsHandler = async (node,setNodes) => {
+const AnalyticsHandler = async (node,setNodes,setIsExecuting,data) => {
 
  
   return 'Analytics handler'
 }
 
-const AuthHandler = async (node,setNodes) => {
+const AuthHandler = async (node,setNodes,setIsExecuting,data) => {
 
  
   return 'Auth Check handler'
 }
 
 
-const httpHandler = async (node,setNodes,setIsExecuting) => {
+const httpHandler = async (node,setNodes,setIsExecuting,data) => {
         let dat = null;
        if(node?.function && node?.function?.url ){
         try{
