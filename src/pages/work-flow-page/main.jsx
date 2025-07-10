@@ -16,6 +16,7 @@ const N8NWorkflowPlatform = () => {
   const [connectionStart, setConnectionStart] = useState(null);
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
   const [workflowName, setWorkflowName] = useState('My Workflow');
+  const [panelStatus, setPanelStatus] = useState('parameter');
   const [isExecuting, setIsExecuting] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [activeTab, setActiveTab] = useState('nodes');
@@ -243,11 +244,36 @@ const N8NWorkflowPlatform = () => {
   };
 
 
+
+
+
+const getTotalConnectionCount = (nodeId,edges) => {
+  const incoming = edges.filter(edge => edge.target === nodeId).length;
+  const outgoing = edges.filter(edge => edge.source === nodeId).length;
+  return { incoming, outgoing, total: incoming + outgoing };
+};
+
+
+
+
+const executeWorkflowWithConnectionInfo = async () => {
+  setIsExecuting(true);
+  const executionOrder = getExecutionOrder();
+  
+  // Log connection information for each node
+  executionOrder.forEach(node => {
+    const connectionInfo = getTotalConnectionCount(node.id, connections);
+    console.log(`Node ${node.id} has ${connectionInfo.total} total connections (${connectionInfo.incoming} incoming, ${connectionInfo.outgoing} outgoing)`);
+  });
+  
+ executeWorkflow();
+};
+
   
 const executeWorkflow = async () => {
   setIsExecuting(true);
   const executionOrder = getExecutionOrder();
-  
+ 
   if (executionOrder.length === 0) {
     console.log("No connected nodes to execute");
     setIsExecuting(false);
@@ -256,8 +282,8 @@ const executeWorkflow = async () => {
  
   let i = 0;
   let globalLoops = 0;
-  const maxGlobalLoops = 3; // Prevent infinite loops
-  let executionContext = {}; // Store data between nodes
+  const maxGlobalLoops = 5; // Increased for more retry attempts
+  let executionContext = {};
  
   while (i < executionOrder.length && globalLoops < maxGlobalLoops) {
     const node = executionOrder[i];
@@ -267,53 +293,91 @@ const executeWorkflow = async () => {
     );
    
     await new Promise(resolve => setTimeout(resolve, 1000));
-    
+   
     // Execute the node function
     const data = await NodeFunction(node, setNodes, setIsExecuting);
     console.log(`Node ${node.id} returned:`, data);
-    
+   
     // Store the result in execution context
     executionContext[node.id] = data;
    
-    // Handle different node types and looping logic
-    if (node.type === 'http' && (data == null || data === 'error')) {
-      // HTTP request failed, find the loop target
-      const loopTarget = findLoopTarget(executionOrder, node.id);
-      
-      if (loopTarget !== -1) {
-        console.log(`HTTP request failed, looping back to index ${loopTarget}`);
-        
-        // Reset nodes status from loop target onwards
-        for (let j = loopTarget; j < executionOrder.length; j++) {
-          setNodes(prev =>
-            prev.map(n => (n.id === executionOrder[j].id ? { ...n, status: 'idle' } : n))
-          );
-        }
-        
-        i = loopTarget;
-        globalLoops++;
-        continue;
-      }
-    }
+    // Check if node failed
+    const isNodeFailure = (data === "error" || data == null || data === "failed");
     
-    // Handle IF nodes - check conditions
-    if (node.type === 'if') {
-      const conditionResult = evaluateCondition(node, executionContext);
+    if (isNodeFailure) {
+      console.log(`Node ${node.id} failed with result:`, data);
       
-      if (!conditionResult) {
-        // Condition failed, loop back to HTTP request or timeout
-        const loopTarget = findHTTPOrTimeoutNode(executionOrder, i);
+      // Set node status to failed
+      setNodes(prev =>
+        prev.map(n => (n.id === node.id ? { ...n, status: 'error' } : n))
+      );
+      
+      // Find if this node connects to a "failed" status node
+      const failedNodeConnection = findFailedNodeConnection(node.id, connections);
+      
+      if (failedNodeConnection) {
+        console.log(`Node ${node.id} connects to failed node, initiating loopback`);
         
-        if (loopTarget !== -1) {
-          console.log(`IF condition failed, looping back to index ${loopTarget}`);
+        // Find the target node to loop back to
+        const loopbackTarget = findLoopbackTarget(node.id, connections, executionOrder);
+        
+        if (loopbackTarget !== -1) {
+          console.log(`Looping back to node at index ${loopbackTarget}`);
           
-          // Reset nodes status from loop target onwards
-          for (let j = loopTarget; j < executionOrder.length; j++) {
+          // Reset nodes status from loopback target onwards
+          for (let j = loopbackTarget; j < executionOrder.length; j++) {
             setNodes(prev =>
               prev.map(n => (n.id === executionOrder[j].id ? { ...n, status: 'idle' } : n))
             );
           }
           
+          i = loopbackTarget;
+          globalLoops++;
+          continue;
+        }
+      }
+    }
+   
+    
+
+    // Handle different node types and existing looping logic
+    if (node.type === 'http' && isNodeFailure) {
+      if(data == null){
+      const loopTarget = findLoopbackTarget(node.id, connections, executionOrder);
+     
+      if (loopTarget !== -1) {
+        console.log(`HTTP request failed, looping back to index ${loopTarget}`);
+       
+        for (let j = loopTarget; j < executionOrder.length; j++) {
+          setNodes(prev =>
+            prev.map(n => (n.id === executionOrder[j].id ? { ...n, status: 'idle' } : n))
+          );
+        }
+       
+        i = loopTarget;
+        globalLoops++;
+        continue;
+      }
+    }
+    }
+   
+
+    // Handle IF nodes - check conditions
+    if (node.type === 'if') {
+      const conditionResult = evaluateCondition(node, executionContext);
+     
+      if (!conditionResult) {
+        const loopTarget = findHTTPRetryTarget(executionOrder, node.id);
+       
+        if (loopTarget !== -1) {
+          console.log(`IF condition failed, looping back to index ${loopTarget}`);
+         
+          for (let j = loopTarget; j < executionOrder.length; j++) {
+            setNodes(prev =>
+              prev.map(n => (n.id === executionOrder[j].id ? { ...n, status: 'idle' } : n))
+            );
+          }
+         
           i = loopTarget;
           globalLoops++;
           continue;
@@ -322,37 +386,119 @@ const executeWorkflow = async () => {
     }
    
     // Set final status based on result
-    const finalStatus = (data === "error" || data == null) ? 'error' : 'success';
+    const finalStatus = isNodeFailure ? 'Failed' : 'Success';
     setNodes(prev =>
       prev.map(n => (n.id === node.id ? { ...n, status: finalStatus } : n))
     );
    
     i++;
   }
-  
+ 
   if (globalLoops >= maxGlobalLoops) {
     console.log("Maximum loops reached, stopping execution");
     setNodes(prev =>
-      prev.map(n => ({ ...n, status: n.status === 'running' ? 'error' : n.status }))
+      prev.map(n => ({ ...n, status: n.status === 'running' ? 'failed' : n.status }))
     );
   }
  
   setIsExecuting(false);
 };
 
-// Helper function to find where to loop back to
-const findLoopTarget = (executionOrder, currentNodeId) => {
-  const currentIndex = executionOrder.findIndex(n => n.id === currentNodeId);
+
+// Helper function to evaluate conditions
+const evaluateCondition = (conditionNode, executionContext, lastNodeFailed) => {
+  const { status, condition, trigger } = conditionNode || {};
   
-  // Look backwards for timeout or manual trigger nodes
+
+  if (conditionNode.type == "if" && conditionNode.function.status_type == "Failed"){
+    return lastNodeFailed;
+  }
+  
+  
+  // Check for success status condition
+  if (conditionNode.type == "if" &&  conditionNode.function.status_type == "Success") {
+    return !lastNodeFailed;
+  }
+  
+  // Add more condition types as needed
+  // You can also check values in executionContext here
+  
+  return false; // Default to false if condition is not recognized
+};
+
+
+// Helper function to find if a node connects to a "failed" status node
+const findFailedNodeConnection = (nodeId, edges) => {
+  return edges.find(edge => 
+    edge.source === nodeId && 
+    (edge.target.function.status_type === "Failed" || edge.status === 'error')
+  );
+};
+
+// Helper function to find the target node to loop back to
+const findLoopbackTarget = (failedNodeId, edges, executionOrder) => {
+  // Look for a specific loopback connection
+  const loopbackEdge = edges.find(edge => 
+    edge.source === failedNodeId && 
+    edge.type === 'if'
+  );
+  
+  if (loopbackEdge) {
+    return executionOrder.findIndex(node => node.id === loopbackEdge.target);
+  }
+  
+  // Loop back to the previous HTTP request or timeout node
+  const currentIndex = executionOrder.findIndex(node => node.id === failedNodeId);
+  
   for (let i = currentIndex - 1; i >= 0; i--) {
     const node = executionOrder[i];
-    if ( node?.type == "timeout") {
+    if (node.type === 'http' || node.type === 'timeout') {
       return i;
     }
-  } 
+  }
   
-  // If no timeout found, loop back to the beginning
+  // Loop back to the beginning if no specific target found
+  return 0;
+};
+
+
+
+// Additional helper functions for specific node types
+const findHTTPRetryTarget = (executionOrder, nodeId) => {
+  const currentIndex = executionOrder.findIndex(node => node.id === nodeId);
+  // For HTTP failures, typically retry from the trigger or previous timeout
+  for (let i = currentIndex - 1; i >= 0; i--) {
+    if (executionOrder[i].type === 'trigger' || executionOrder[i].type === 'timeout') {
+      return i;
+    }
+  }
+  return 0;
+};
+
+const findConditionalRetryTarget = (executionOrder, nodeId) => {
+  const currentIndex = executionOrder.findIndex(node => node.id === nodeId);
+  // For IF node failures, retry from the previous HTTP request
+  for (let i = currentIndex - 1; i >= 0; i--) {
+    if (executionOrder[i].type === 'http') {
+      return i;
+    }
+  }
+  return 0;
+};
+
+const findTimeoutRetryTarget = (executionOrder, nodeId) => {
+  const currentIndex = executionOrder.findIndex(node => node.id === nodeId);
+  // For timeout failures, retry from the trigger
+  for (let i = currentIndex - 1; i >= 0; i--) {
+    if (executionOrder[i].type === 'trigger') {
+      return i;
+    }
+  }
+  return 0;
+};
+
+const findGenericRetryTarget = (executionOrder, nodeId) => {
+  // Generic fallback - retry from the beginning
   return 0;
 };
 
@@ -620,7 +766,7 @@ const findLoopTarget = (executionOrder, currentNodeId) => {
             Zoom: {Math.round(scale * 100)}%
           </div>
           <button
-            onClick={executeWorkflow}
+            onClick={executeWorkflowWithConnectionInfo}
             disabled={isExecuting || nodes.length === 0}
             className="flex items-center space-x-2 bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 disabled:opacity-50 disabled:cursor-not-allowed px-4 py-2 rounded-lg transition-all duration-200"
           >

@@ -37,7 +37,7 @@ const functionHandler = async (node,setNodes,setIsExecuting,data) => {
 
 const ifHandler = async (node,setNodes,setIsExecuting,data) => {
   if(node?.function && node?.function.status_type == "Failed"){
-  return 'continue';
+  return data
   }else{
   return data
   }
