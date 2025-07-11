@@ -1,7 +1,7 @@
 import React, { useState, useRef, useCallback } from 'react';
-import { Trash2} from 'lucide-react';
+import { Play, Trash2} from 'lucide-react';
 
-const NodeComponent = ({ node, onNodeClick, onStartConnection, onDelete,handleNodeDrag,canvasRef, selectedNode, canvasOffset, scale, updateNodePosition,handleNode }) => {
+const NodeComponent = ({ node, onNodeClick, onStartConnection, onDelete,handleNodeDrag,canvasRef, selectedNode, canvasOffset, scale, updateNodePosition,handleNode,executeWorkflowFromNode }) => {
     const [isDragging, setIsDragging] = useState(false);
     const [isHolding, setIsHolding] = useState(false);
     const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
@@ -125,7 +125,18 @@ if (e.key === "Delete" && selectedNode) {
             >
               <Trash2 className="w-5 h-5" />
             </button>
-            
+            <button
+              className="node-action cursor-pointer text-gray-400 hover:text-yellow-400 transition-colors"
+              
+              onClick={(e) => {
+                e.stopPropagation();
+                
+                executeWorkflowFromNode(node.id)
+                
+              }}
+            >
+              <Play className="w-5 h-5" />
+            </button>
 
              
           </div>:null}
