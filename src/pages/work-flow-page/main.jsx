@@ -418,7 +418,7 @@ const executeWorkflow = async () => {
 const executeWorkflowFromNode = async (selectedNodeId = null) => {
   setIsExecuting(true);
   const dt = await getExecutionOrder();
- await setExecutionOrder([...dt]);
+  await setExecutionOrder([...dt]);
  
   if (executionOrder.length === 0) {
     console.log("No connected nodes to execute");
