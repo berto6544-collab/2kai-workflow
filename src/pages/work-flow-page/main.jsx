@@ -232,6 +232,8 @@ const N8NWorkflowPlatform = () => {
       const node = nodes.find(n => n.id === nodeId);
       if (node) {
         executionOrdder.push(node);
+        setExecutionOrder([...executionOrdder]);
+ 
       }
       
       // Find all nodes that this node connects to
@@ -312,9 +314,8 @@ const getConditionalNextNode = (currentNode, data, connections, executionOrder) 
 
 const executeWorkflow = async () => {
   setIsExecuting(true);
-  const dt = await getExecutionOrder();
- await setExecutionOrder([...dt]);
- 
+  const executionOrder = await getExecutionOrder();
+  
   if (executionOrder.length === 0) {
     console.log("No connected nodes to execute");
     setIsExecuting(false);
@@ -411,14 +412,15 @@ const executeWorkflow = async () => {
     i++;
   }
  
+
   setIsExecuting(false);
 };
 
 
 const executeWorkflowFromNode = async (selectedNodeId = null) => {
   setIsExecuting(true);
-  const dt = await getExecutionOrder();
-  await setExecutionOrder([...dt]);
+  const executionOrder = await getExecutionOrder();
+ 
  
   if (executionOrder.length === 0) {
     console.log("No connected nodes to execute");
