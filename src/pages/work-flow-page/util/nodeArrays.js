@@ -1,54 +1,245 @@
  import { 
   Play, Database, Mail, Globe, Settings, GitBranch, Code, FileText, Zap, Clock, User, Download, Upload,
   MessageSquare, Camera, Mic, Layers,Brain,
-  ThumbsUp, BarChart3, Cloud, GitPullRequest, Cpu, ShieldCheck
+  ThumbsUp, BarChart3, Cloud, GitPullRequest, Cpu, ShieldCheck,
+  RotateCcw
 } from 'lucide-react';
  
  export const nodeTypes = [
     // Core
-    { id: 'trigger', name: 'Manual Trigger', icon: Play, color: 'bg-yellow-500 text-black', category: 'Core' },
-    { id: 'schedule', name: 'Schedule Trigger', icon: Clock, color: 'bg-yellow-500 text-black', category: 'Core' },
-    { id: 'webhook', name: 'Webhook', icon: Globe, color: 'bg-yellow-500 text-black', category: 'Core' },
-    { id: 'http', name: 'HTTP Request', icon: Zap, color: 'bg-yellow-500 text-black', category: 'Core' },
-    { id: 'code', name: 'Code', icon: Code, color: 'bg-yellow-500 text-black', category: 'Core' },
-    { id: 'function', name: 'Function', icon: Settings, color: 'bg-yellow-500 text-black', category: 'Core' },
-    { id: 'timeout', name: 'TimeOut', icon: Settings, color: 'bg-yellow-500 text-black', category: 'Core' },
-
+    { 
+        id: 'trigger', 
+        name: 'Manual Trigger', 
+        icon: Play, 
+        color: 'bg-yellow-500 text-black', 
+        category: 'Core',
+        description: 'Manually start a workflow execution'
+    },
+    { 
+        id: 'schedule', 
+        name: 'Schedule Trigger', 
+        icon: Clock, 
+        color: 'bg-yellow-500 text-black', 
+        category: 'Core',
+        description: 'Trigger workflows on a schedule (cron, interval, or specific times)'
+    },
+    { 
+        id: 'webhook', 
+        name: 'Webhook', 
+        icon: Globe, 
+        color: 'bg-yellow-500 text-black', 
+        category: 'Core',
+        description: 'Receive HTTP requests from external systems to trigger workflows'
+    },
+    { 
+        id: 'http', 
+        name: 'HTTP Request', 
+        icon: Zap, 
+        color: 'bg-yellow-500 text-black', 
+        category: 'Core',
+        description: 'Make HTTP requests to external APIs and services'
+    },
+    { 
+        id: 'code', 
+        name: 'Code', 
+        icon: Code, 
+        color: 'bg-yellow-500 text-black', 
+        category: 'Core',
+        description: 'Execute custom JavaScript code with access to workflow data'
+    },
+    { 
+        id: 'function', 
+        name: 'Function', 
+        icon: Settings, 
+        color: 'bg-yellow-500 text-black', 
+        category: 'Core',
+        description: 'Call reusable functions and transform data'
+    },
+    { 
+        id: 'timeout', 
+        name: 'TimeOut', 
+        icon: Settings, 
+        color: 'bg-yellow-500 text-black', 
+        category: 'Core',
+        description: 'Add delays or timeouts to workflow execution'
+    },
+    {
+        id: 'loop', 
+        name: 'Loop', 
+        icon: RotateCcw, 
+        color: 'bg-yellow-500 text-white', 
+        category: 'Core',
+        description: 'Iterate over arrays or repeat actions multiple times'
+    },
+    
     // Logic
-    { id: 'if', name: 'IF', icon: GitBranch, color: 'bg-yellow-500 text-black', category: 'Logic' },
-    { id: 'switch', name: 'Switch', icon: GitPullRequest, color: 'bg-yellow-500 text-black', category: 'Logic' },
-
+    { 
+        id: 'if', 
+        name: 'IF', 
+        icon: GitBranch, 
+        color: 'bg-yellow-500 text-black', 
+        category: 'Logic',
+        description: 'Create conditional branches based on boolean expressions'
+    },
+    { 
+        id: 'switch', 
+        name: 'Switch', 
+        icon: GitPullRequest, 
+        color: 'bg-yellow-500 text-black', 
+        category: 'Logic',
+        description: 'Route workflow execution based on multiple conditions'
+    },
+    
     // Communication
-    { id: 'email', name: 'Gmail', icon: Mail, color: 'bg-yellow-500 text-black', category: 'Communication' },
-    { id: 'slack', name: 'Slack', icon: FileText, color: 'bg-yellow-500 text-black', category: 'Communication' },
-    { id: 'sms', name: 'Twilio SMS', icon: MessageSquare, color: 'bg-yellow-500 text-black', category: 'Communication' },
-
+    { 
+        id: 'email', 
+        name: 'Gmail', 
+        icon: Mail, 
+        color: 'bg-yellow-500 text-black', 
+        category: 'Communication',
+        description: 'Send and receive emails through Gmail API'
+    },
+    { 
+        id: 'slack', 
+        name: 'Slack', 
+        icon: FileText, 
+        color: 'bg-yellow-500 text-black', 
+        category: 'Communication',
+        description: 'Send messages and interact with Slack channels and users'
+    },
+    { 
+        id: 'sms', 
+        name: 'Twilio SMS', 
+        icon: MessageSquare, 
+        color: 'bg-yellow-500 text-black', 
+        category: 'Communication',
+        description: 'Send SMS messages using Twilio service'
+    },
+    
     // Database
-    { id: 'database', name: 'MySQL', icon: Database, color: 'bg-yellow-500 text-black', category: 'Database' },
-    { id: 'postgres', name: 'PostgreSQL', icon: Layers, color: 'bg-yellow-500 text-black', category: 'Database' },
-    { id: 'mongo', name: 'MongoDB', icon: Cpu, color: 'bg-yellow-500 text-black', category: 'Database' },
-
+    { 
+        id: 'database', 
+        name: 'MySQL', 
+        icon: Database, 
+        color: 'bg-yellow-500 text-black', 
+        category: 'Database',
+        description: 'Execute SQL queries and manage MySQL database operations'
+    },
+    { 
+        id: 'postgres', 
+        name: 'PostgreSQL', 
+        icon: Layers, 
+        color: 'bg-yellow-500 text-black', 
+        category: 'Database',
+        description: 'Execute SQL queries and manage PostgreSQL database operations'
+    },
+    { 
+        id: 'mongo', 
+        name: 'MongoDB', 
+        icon: Cpu, 
+        color: 'bg-yellow-500 text-black', 
+        category: 'Database',
+        description: 'Perform CRUD operations on MongoDB collections'
+    },
+    
     // CRM / Marketing
-    { id: 'hubspot', name: 'HubSpot', icon: User, color: 'bg-yellow-500 text-black', category: 'CRM' },
-    { id: 'mailchimp', name: 'Mailchimp', icon: ThumbsUp, color: 'bg-yellow-500 text-black', category: 'CRM' },
-
+    { 
+        id: 'hubspot', 
+        name: 'HubSpot', 
+        icon: User, 
+        color: 'bg-yellow-500 text-black', 
+        category: 'CRM',
+        description: 'Manage contacts, deals, and marketing campaigns in HubSpot'
+    },
+    { 
+        id: 'mailchimp', 
+        name: 'Mailchimp', 
+        icon: ThumbsUp, 
+        color: 'bg-yellow-500 text-black', 
+        category: 'CRM',
+        description: 'Manage email campaigns and subscriber lists in Mailchimp'
+    },
+    
     // DevOps / Infra
-    { id: 'aws', name: 'AWS Lambda', icon: Cloud, color: 'bg-yellow-500 text-black', category: 'DevOps' },
-    { id: 'github', name: 'GitHub', icon: GitBranch, color: 'bg-yellow-500 text-black', category: 'DevOps' },
-
+    { 
+        id: 'aws', 
+        name: 'AWS Lambda', 
+        icon: Cloud, 
+        color: 'bg-yellow-500 text-black', 
+        category: 'DevOps',
+        description: 'Execute serverless functions on AWS Lambda'
+    },
+    { 
+        id: 'github', 
+        name: 'GitHub', 
+        icon: GitBranch, 
+        color: 'bg-yellow-500 text-black', 
+        category: 'DevOps',
+        description: 'Manage repositories, issues, and pull requests on GitHub'
+    },
+    
     // AI / ML
-    { id: 'openai', name: 'OpenAI', icon: Brain, color: 'bg-yellow-500 text-black', category: 'AI' },
-    { id: 'stabilityai', name: 'Stability AI', icon: Camera, color: 'bg-yellow-500 text-black', category: 'AI' },
-
+    { 
+        id: 'openai', 
+        name: 'OpenAI', 
+        icon: Brain, 
+        color: 'bg-yellow-500 text-black', 
+        category: 'AI',
+        description: 'Generate text, images, and completions using OpenAI models'
+    },
+    { 
+        id: 'stabilityai', 
+        name: 'Stability AI', 
+        icon: Camera, 
+        color: 'bg-yellow-500 text-black', 
+        category: 'AI',
+        description: 'Generate and edit images using Stability AI models'
+    },
+    
     // Files
-    { id: 'googleDrive', name: 'Google Drive', icon: Upload, color: 'bg-yellow-500 text-black', category: 'Files' },
-    { id: 'dropbox', name: 'Dropbox', icon: Download, color: 'bg-yellow-500 text-black', category: 'Files' },
-
+    { 
+        id: 'googleDrive', 
+        name: 'Google Drive', 
+        icon: Upload, 
+        color: 'bg-yellow-500 text-black', 
+        category: 'Files',
+        description: 'Upload, download, and manage files in Google Drive'
+    },
+    { 
+        id: 'dropbox', 
+        name: 'Dropbox', 
+        icon: Download, 
+        color: 'bg-yellow-500 text-black', 
+        category: 'Files',
+        description: 'Upload, download, and manage files in Dropbox'
+    },
+    
     // Utilities
-    { id: 'voice', name: 'Speech to Text', icon: Mic, color: 'bg-yellow-500 text-black', category: 'Utility' },
-    { id: 'analytics', name: 'Analytics', icon: BarChart3, color: 'bg-yellow-500 text-black', category: 'Utility' },
-    { id: 'auth', name: 'Auth Check', icon: ShieldCheck, color: 'bg-yellow-500 text-black', category: 'Utility' },
-  ];
+    { 
+        id: 'voice', 
+        name: 'Speech to Text', 
+        icon: Mic, 
+        color: 'bg-yellow-500 text-black', 
+        category: 'Utility',
+        description: 'Convert audio recordings to text using speech recognition'
+    },
+    { 
+        id: 'analytics', 
+        name: 'Analytics', 
+        icon: BarChart3, 
+        color: 'bg-yellow-500 text-black', 
+        category: 'Utility',
+        description: 'Track events and analyze workflow performance metrics'
+    },
+    { 
+        id: 'auth', 
+        name: 'Auth Check', 
+        icon: ShieldCheck, 
+        color: 'bg-yellow-500 text-black', 
+        category: 'Utility',
+        description: 'Validate authentication tokens and user permissions'
+    },
+];
  
  export const getNodeConfig = (nodeType,randomstring) => {
     const configs = {
@@ -64,6 +255,12 @@
         { name: 'startTime', label: 'Start Time', type: 'time',value:"" },
         { name: 'timezone', label: 'Timezone', type: 'select',value:"", options: ['UTC', 'America/New_York', 'America/Los_Angeles', 'Europe/London', 'Asia/Tokyo'] },
         { name: 'active', label: 'Active', type: 'checkbox',value:"", defaultValue: true }
+      ],
+      loop: [
+      { name: 'Iterations', label: 'Number of Iterations', type: 'number', value: "", placeholder: '10', required: true },
+      { name: 'Condition', label: 'Loop Condition', type: 'text', value: "", placeholder: 'i < array.length', required: false },
+      { name: 'Variable', label: 'Iterator Variable', type: 'text', value: "", placeholder: 'i', required: false },
+      { name: 'Timeout', label: 'SetTimeout', type: 'number',value:"", placeholder: '30', required: true }
       ],
       webhook: [
         { name: 'path', label: 'Path', type: 'text', placeholder: '/webhook',value:""+randomstring, required: true },

@@ -24,7 +24,9 @@ import {
     DropBoxHandler,
     VoiceHandler,
     AnalyticsHandler,
-    AuthHandler} from "./handlers";
+    AuthHandler,
+    loopHandler
+} from "./handlers";
 
 
 
@@ -48,6 +50,8 @@ var data = null
   case 'function': return await functionHandler(node,setNodes,setIsExecuting,data)
   break;
   case 'timeout': return await timeOutHandler(node,setNodes,setIsExecuting,data)
+  break;
+  case 'loop': return await loopHandler(node,setNodes,setIsExecuting,data)
   break;
   case 'if': return await ifHandler(node,setNodes,setIsExecuting,data)
   break;

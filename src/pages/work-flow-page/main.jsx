@@ -94,6 +94,7 @@ const N8NWorkflowPlatform = () => {
       x,
       y,
       config: getNodeConfig(draggedNode.id,randomString),
+      description:draggedNode.description,
       status: 'idle'
     };
   
@@ -120,6 +121,7 @@ const N8NWorkflowPlatform = () => {
       x,
       y,
       config: getNodeConfig(draggedNode.id,randomString),
+      description:draggedNode.description,
       status: 'idle'
     };
   
@@ -139,7 +141,7 @@ const N8NWorkflowPlatform = () => {
           id: `conn-${Date.now()}`,
           from: connectionStart.id,
           to: node.id,
-          fromX: connectionStart.x + 200,
+          fromX: connectionStart.x + 250,
           fromY: connectionStart.y + 50,
           toX: node.x,
           toY: node.y + 50
@@ -184,7 +186,7 @@ const N8NWorkflowPlatform = () => {
     
     setConnections(prev => prev.map(conn => {
       if (conn.from === nodeId) {
-        return { ...conn, fromX: x + 200, fromY: y + 50};
+        return { ...conn, fromX: x + 250, fromY: y + 50};
       }
       if (conn.to === nodeId) {
         return { ...conn, toX: x, toY: y + 50 };
@@ -255,21 +257,57 @@ const getTotalConnectionCount = (nodeId,edges) => {
 
 
 
-
-const executeWorkflowWithConnectionInfo = async () => {
-  setIsExecuting(true);
-  const executionOrder = getExecutionOrder();
   
-  // Log connection information for each node
-  executionOrder.forEach(node => {
-    const connectionInfo = getTotalConnectionCount(node.id, connections);
-    console.log(`Node ${node.id} has ${connectionInfo.total} total connections (${connectionInfo.incoming} incoming, ${connectionInfo.outgoing} outgoing)`);
+// Helper function to find connections to Success/Failed nodes
+const findConditionalConnections = (nodeId, connections) => {
+  const nodeConnections = connections.filter(conn => conn.from === nodeId);
+  
+  const successConnection = nodeConnections.find(conn => {
+    // Find connection to a node with Success status_type
+    const targetNode = nodes.find(n => n.id === conn.target);
+    return targetNode && targetNode.function.status_type === "Success";
   });
   
- executeWorkflow();
+  const failedConnection = nodeConnections.find(conn => {
+    // Find connection to a node with Failed status_type
+    const targetNode = nodes.find(n => n.id === conn.target);
+    return targetNode && targetNode.function.status_type === "Failed";
+  });
+  
+  return { successConnection, failedConnection };
 };
 
+// Helper function to check if node should route to success (is "green")
+const isNodeGreen = (node, data) => {
+  // Multiple conditions to determine if node is "green"/successful
+  return (
+    node.status === 'success' ||
+    data?.success === true ||
+    data?.completed === true ||
+    data?.status === 'success'
+  );
+};
+
+// Helper function to get next node based on conditional routing
+const getConditionalNextNode = (currentNode, data, connections, executionOrder) => {
+  const { successConnection, failedConnection } = findConditionalConnections(currentNode.id, connections);
   
+  if (!successConnection && !failedConnection) {
+    return null; // No conditional routing needed
+  }
+  
+  const isGreen = isNodeGreen(currentNode, data);
+  const targetConnection = isGreen ? successConnection : failedConnection;
+  
+  if (targetConnection) {
+    // Find the target node in execution order
+    const targetNodeIndex = executionOrder.findIndex(node => node.id === targetConnection.target);
+    return targetNodeIndex !== -1 ? targetNodeIndex : null;
+  }
+  
+  return null;
+};
+
 const executeWorkflow = async () => {
   setIsExecuting(true);
   const executionOrder = getExecutionOrder();
@@ -282,7 +320,7 @@ const executeWorkflow = async () => {
  
   let i = 0;
   let globalLoops = 0;
-  const maxGlobalLoops = 5; // Increased for more retry attempts
+  const maxGlobalLoops = 5;
   let executionContext = {};
  
   while (i < executionOrder.length && globalLoops < maxGlobalLoops) {
@@ -302,7 +340,24 @@ const executeWorkflow = async () => {
     executionContext[node.id] = data;
    
     // Check if node failed
-    const isNodeFailure = (data === "error" || data == null || data === "failed");
+    const isNodeFailure = (data?.success === false || data?.completed == false || data == null || data === "failed");
+    
+    // Check for conditional routing first
+    const conditionalNextIndex = getConditionalNextNode(node, data, connections, executionOrder);
+    
+    if (conditionalNextIndex !== null) {
+      console.log(`Node ${node.id} has conditional routing, jumping to index ${conditionalNextIndex}`);
+      
+      // Set current node status based on condition
+      const finalStatus = isNodeGreen(node, data) ? 'success' : 'error';
+      setNodes(prev =>
+        prev.map(n => (n.id === node.id ? { ...n, status: finalStatus } : n))
+      );
+      
+      // Jump to the conditional target
+      i = conditionalNextIndex;
+      continue;
+    }
     
     if (isNodeFailure) {
       console.log(`Node ${node.id} failed with result:`, data);
@@ -336,34 +391,53 @@ const executeWorkflow = async () => {
           continue;
         }
       }
+    }else{
+       setNodes(prev =>
+        prev.map(n => (n.id === node.id ? { ...n, status: 'success' } : n))
+      );
     }
    
-    
-
     // Handle different node types and existing looping logic
-    if (node.type === 'http' && isNodeFailure) {
-      if(data == null){
-      const loopTarget = findLoopbackTarget(node.id, connections, executionOrder);
-     
-      if (loopTarget !== -1) {
-        console.log(`HTTP request failed, looping back to index ${loopTarget}`);
+    if ((node.type === 'http') && isNodeFailure) {
+      if(node.status == "error"){
+        const loopTarget = findLoopbackTarget(node.id, connections, executionOrder);
        
-        for (let j = loopTarget; j < executionOrder.length; j++) {
-          setNodes(prev =>
-            prev.map(n => (n.id === executionOrder[j].id ? { ...n, status: 'idle' } : n))
-          );
+        if (loopTarget !== -1) {
+          console.log(`HTTP request failed, looping back to index ${loopTarget}`);
+         
+          for (let j = loopTarget; j < executionOrder.length; j++) {
+            setNodes(prev =>
+              prev.map(n => (n.id === executionOrder[j].id ? { ...n, status: 'idle' } : n))
+            );
+          }
+         
+          i = loopTarget;
+          globalLoops++;
+          continue;
         }
-       
-        i = loopTarget;
-        globalLoops++;
-        continue;
       }
     }
+
+
+    if (node.type === 'http' && !isNodeFailure) {
+
+
+     const data =  await handleNodeConnections(node,connections,executionOrder)
+     
+
+if (data.index !== -1) {
+  i = data.index;
+  console.log(executionOrder[data.index])
+} else {
+  i++
+  //console.log("No Success node found");
+}
+continue;
     }
    
-
     // Handle IF nodes - check conditions
     if (node.type === 'if') {
+      
       const conditionResult = evaluateCondition(node, executionContext);
      
       if (!conditionResult) {
@@ -386,7 +460,7 @@ const executeWorkflow = async () => {
     }
    
     // Set final status based on result
-    const finalStatus = isNodeFailure ? 'Failed' : 'Success';
+    const finalStatus = isNodeFailure ? 'error' : 'success';
     setNodes(prev =>
       prev.map(n => (n.id === node.id ? { ...n, status: finalStatus } : n))
     );
@@ -397,12 +471,52 @@ const executeWorkflow = async () => {
   if (globalLoops >= maxGlobalLoops) {
     console.log("Maximum loops reached, stopping execution");
     setNodes(prev =>
-      prev.map(n => ({ ...n, status: n.status === 'running' ? 'failed' : n.status }))
+      prev.map(n => ({ ...n, status: n.status === 'running' ? 'error' : n.status }))
     );
   }
  
   setIsExecuting(false);
 };
+
+
+function handleNodeConnections(node, connections, executionOrder) {
+  // Find all connections from the current node
+  const nodeConnections = connections.filter(conn => conn.from === node.id);
+  console.log(nodeConnections);
+  
+  // Find nodes that are connected to this node
+  const connectedNodeIds = nodeConnections.map(conn => conn.to);
+  
+  console.log(connectedNodeIds)
+  // Check if any connected nodes have non-failed status or no status_type
+  const hasNonFailedConnectedNode = connectedNodeIds.some(nodeId => {
+    const connectedNode = executionOrder.find(n => n.id === nodeId);
+    return connectedNode && 
+           connectedNode.function && 
+           (connectedNode.function.status_type !== "Failed" || 
+            !connectedNode.function.hasOwnProperty('status_type') || !n.hasOwnProperty('function'));
+  });
+  
+  let index;
+  
+  if (hasNonFailedConnectedNode && node.status == "success") {
+    // Find index of first non-failed node or node without status_type in execution order
+    index = executionOrder.findIndex(n => 
+      n.function && 
+      (n.function.status_type !== "Failed" || !n.function.hasOwnProperty('status_type') ||!n.hasOwnProperty('function'))
+    );
+  } else {
+    // Find index of first failed node or use alternative logic
+    index = executionOrder.findIndex(n => 
+      n.function && n.function.status_type === "Failed"
+    );
+  }
+  
+  console.log(`Selected index: ${index}`);
+  return { nodeConnections, index, hasNonFailedConnectedNode };
+}
+
+
 
 
 // Helper function to evaluate conditions
@@ -427,11 +541,13 @@ const evaluateCondition = (conditionNode, executionContext, lastNodeFailed) => {
 };
 
 
+
+
 // Helper function to find if a node connects to a "failed" status node
 const findFailedNodeConnection = (nodeId, edges) => {
   return edges.find(edge => 
-    edge.source === nodeId && 
-    (edge.target.function.status_type === "Failed" || edge.status === 'error')
+    edge.from === nodeId && 
+    (edge.status === 'error' || edge.type === "loop")
   );
 };
 
@@ -439,7 +555,7 @@ const findFailedNodeConnection = (nodeId, edges) => {
 const findLoopbackTarget = (failedNodeId, edges, executionOrder) => {
   // Look for a specific loopback connection
   const loopbackEdge = edges.find(edge => 
-    edge.source === failedNodeId && 
+    edge.from === failedNodeId && 
     edge.type === 'if'
   );
   
@@ -475,32 +591,6 @@ const findHTTPRetryTarget = (executionOrder, nodeId) => {
   return 0;
 };
 
-const findConditionalRetryTarget = (executionOrder, nodeId) => {
-  const currentIndex = executionOrder.findIndex(node => node.id === nodeId);
-  // For IF node failures, retry from the previous HTTP request
-  for (let i = currentIndex - 1; i >= 0; i--) {
-    if (executionOrder[i].type === 'http') {
-      return i;
-    }
-  }
-  return 0;
-};
-
-const findTimeoutRetryTarget = (executionOrder, nodeId) => {
-  const currentIndex = executionOrder.findIndex(node => node.id === nodeId);
-  // For timeout failures, retry from the trigger
-  for (let i = currentIndex - 1; i >= 0; i--) {
-    if (executionOrder[i].type === 'trigger') {
-      return i;
-    }
-  }
-  return 0;
-};
-
-const findGenericRetryTarget = (executionOrder, nodeId) => {
-  // Generic fallback - retry from the beginning
-  return 0;
-};
 
 
   const deleteConnection = (connectionToDelete) => {
@@ -639,6 +729,19 @@ const findGenericRetryTarget = (executionOrder, nodeId) => {
     }));
   };
 
+
+  const handleOnChange = (fieldKey, value) => {
+    if (!selectedNode) return;
+    
+   setNodes((prevNodes) =>
+   prevNodes.map((node) => 
+    node.id === selectedNode.id 
+      ? { ...node, [fieldKey]: value } 
+      : node 
+  )); 
+  };
+
+
     const handleNode = (node) => {
     setSelectedNode(node);
     
@@ -721,7 +824,7 @@ const findGenericRetryTarget = (executionOrder, nodeId) => {
                           </div>
                           <div className="flex-1">
                             <div className="font-medium text-white">{nodeType.name}</div>
-                            <div className="text-xs text-gray-400">{nodeType.id}</div>
+                            <div className="text-xs text-gray-400">{nodeType.description}</div>
                           </div>
                         
                         {/*<button className={'text-gray-50 hover:text-yellow-500'} onClick={(e)=>{
@@ -766,7 +869,7 @@ const findGenericRetryTarget = (executionOrder, nodeId) => {
             Zoom: {Math.round(scale * 100)}%
           </div>
           <button
-            onClick={executeWorkflowWithConnectionInfo}
+            onClick={executeWorkflow}
             disabled={isExecuting || nodes.length === 0}
             className="flex items-center space-x-2 bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 disabled:opacity-50 disabled:cursor-not-allowed px-4 py-2 rounded-lg transition-all duration-200"
           >
@@ -851,7 +954,7 @@ const findGenericRetryTarget = (executionOrder, nodeId) => {
             
             {isConnecting && connectionStart && (
               <path
-                d={`M ${(connectionStart.x + 200) * scale + canvasOffset.x} ${(connectionStart.y + 50) * scale + canvasOffset.y} 
+                d={`M ${(connectionStart.x + 250) * scale + canvasOffset.x} ${(connectionStart.y + 50) * scale + canvasOffset.y} 
                     C ${(connectionStart.x + 150) * scale + canvasOffset.x} ${(connectionStart.y + 50) * scale + canvasOffset.y} 
                       ${mousePosition.x - 50} ${mousePosition.y} 
                       ${mousePosition.x} ${mousePosition.y}`}
@@ -893,10 +996,17 @@ const findGenericRetryTarget = (executionOrder, nodeId) => {
       {selectedNode && (
         <div className="w-96 bg-[#131313] shadow-xl border-l border-gray-700 overflow-y-auto h-full">
           <div className="p-4 border-b border-gray-700">
-            <h3 className="text-lg font-semibold text-white">Node Settings</h3>
+            <h3 className="text-lg font-semibold text-white mb-4">Node Settings</h3>
+          <div className="flex w-full gap-2">
+            <button onClick={()=>{setPanelStatus('parameter')}} className={`p-2 px-4 rounded-md w-full cursor-pointer ${panelStatus == "parameter"?'bg-yellow-600 text-black':'hover:bg-yellow-500 bg-transparent text-gray-400 hover:text-black'}`}>Parameters</button>
+            <button onClick={()=>{setPanelStatus('settings')}} className={`p-2 px-4 rounded-md w-full cursor-pointer ${panelStatus == "settings"?'bg-yellow-600 text-black':'hover:bg-yellow-500 bg-transparent text-gray-400 hover:text-black'}`}>Settings</button>
+          
           </div>
           
-          <div className="p-2 border-b border-gray-700">
+          </div>
+          
+
+          {panelStatus == "parameter"?<div className="p-2">
           
           {selectedNode!= null && selectedNode?.config.map((field)=>(<RenderFormField selectedNode={selectedNode != null?selectedNode:null} handleFieldChange={handleFieldChange} field={field} formData={formData} />))}
           
@@ -915,7 +1025,42 @@ const findGenericRetryTarget = (executionOrder, nodeId) => {
 
               
                 
-        </div>
+        </div>:null}
+
+         {panelStatus == "settings"?<div className="p-2">
+
+          <div className="py-2 px-2 flex flex-col items-start gap-2">
+            <label className="block text-sm font-medium text-gray-100">Node name</label>
+            <input
+              type="text"
+              value={selectedNode.name}
+              onChange={(e) => {
+                handleOnChange('name', e.target.value)
+                selectedNode.name = e.target.value
+                //console.log('selected',selectedNode.name)
+              }}
+              
+              className="w-full px-3 py-2 border-1 border-gray-800 bg-[#242121] text-white rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            />
+          </div>
+         
+         <div  className="py-2 px-2 flex flex-col items-start gap-2">
+            <label className="block text-sm font-medium text-gray-100">Notes</label>
+            <textarea
+              value={selectedNode.note}
+              onChange={(e) =>{
+                handleOnChange('note', e.target.value)
+                selectedNode.note = e.target.value
+                //console.log('selected',selectedNode.description)
+              }}
+              placeholder={'write notes'}
+              rows={4}
+              className="w-full px-3 py-2 border-1 border-gray-800 bg-[#242121] text-white rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+            />
+          </div>
+
+         </div>:null}
+
         <div  className={`flex gap-2 w-full items-center p-3`}>
                 <button tabIndex={0} onClick={()=>{handleSave();}} className={`w-full p-2 bg-yellow-400 hover:bg-yellow-500 text-black rounded-md cursor-pointer disabled:bg-yellow-700`}>{isSaving==true?'Saving':'Save'}</button>
               </div>

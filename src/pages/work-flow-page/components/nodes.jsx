@@ -78,6 +78,7 @@ if (e.key === "Delete" && selectedNode) {
       switch (status) {
         case 'running': return 'border-blue-400 shadow-blue-200';
         case 'success': return 'border-green-400 shadow-green-200';
+        case 'Success': return 'border-green-400 shadow-green-200';
         case 'error': return 'border-red-400 shadow-red-200';
         default: return selectedNode?.id === node.id ? 'border-yellow-400 shadow-yellow-200' : 'border-gray-600';
       }
@@ -96,7 +97,7 @@ if (e.key === "Delete" && selectedNode) {
         style={{ 
           left: node.x, 
           top:  node.y, 
-          width: 200, 
+          width: 250, 
           height: 100,
           transform: `scale(${scale})`,
           transformOrigin: 'top left'
@@ -109,25 +110,11 @@ if (e.key === "Delete" && selectedNode) {
         }}
       
       >
-      <div
 
-        className={`absolute bg-[#131313] h-full  w-full border-2 rounded-xl select-none ${getStatusColor(node.status)} ${isDragging ? 'opacity-75' : ''} ${isHolding ? 'cursor-grabbing' : 'cursor-grab'}`}
-        
-      >
-        <div className="flex items-center justify-between p-4 h-full">
-          <div className="flex items-center space-x-3">
-            <div className={`p-2 rounded-lg ${node.color} shadow-lg`}>
-              <Icon className="w-5 h-5 text-black" />
-            </div>
-            <div>
-              <div className="text-sm font-semibold text-white">{node.name}</div>
-              <div className="text-xs text-gray-400">{node.type}</div>
-            </div>
-          </div>
-          <div className="flex flex-col space-y-1">
+        {selectedNode?.id == node?.id ?<div className="flex absolute -top-8 left-0 gap-2 ">
             
             <button
-              className="node-action p-1 cursor-pointer text-gray-400 hover:text-yellow-400 transition-colors"
+              className="node-action cursor-pointer text-gray-400 hover:text-yellow-400 transition-colors"
               
               onClick={(e) => {
                 e.stopPropagation();
@@ -138,7 +125,26 @@ if (e.key === "Delete" && selectedNode) {
             >
               <Trash2 className="w-5 h-5" />
             </button>
+            
+
+             
+          </div>:null}
+      <div
+
+        className={`absolute bg-[#131313] h-full w-full border-2 rounded-xl select-none ${getStatusColor(node.status)} ${isDragging ? 'opacity-75' : ''} ${isHolding ? 'cursor-grabbing' : 'cursor-grab'}`}
+        
+      >
+        <div className="flex items-center justify-between p-4 h-full">
+          <div className="flex items-start space-x-3">
+            <div className={`p-2 rounded-lg ${node.color} shadow-lg`}>
+              <Icon className="w-5 h-5 text-black" />
+            </div>
+            <div>
+              <div className="text-sm font-semibold text-white">{node.name}</div>
+              <div className="text-xs text-gray-400">{node.description}</div>
+            </div>
           </div>
+          
         </div>
         
         {/* Connection points */}
@@ -155,10 +161,10 @@ if (e.key === "Delete" && selectedNode) {
           <div className="absolute -top-2 -right-2">
             <div className={`w-4 h-4 rounded-full flex items-center justify-center ${
               node.status === 'running' ? 'bg-yellow-400 animate-pulse' :
-              node.status === 'success' ? 'bg-green-400' : 'bg-red-400'
+              node.status === 'success' || node.status === 'Success'? 'bg-green-400' : 'bg-red-400'
             }`}>
               {node.status === 'running' && <div className="w-2 h-2 bg-white rounded-full animate-spin"></div>}
-              {node.status === 'success' && <div className="w-2 h-2 bg-white rounded-full"></div>}
+              {node.status === 'success' || node.status === 'Success' && <div className="w-2 h-2 bg-white rounded-full"></div>}
               {node.status === 'error' && <div className="w-2 h-2 bg-white rounded-full"></div>}
             </div>
           </div>
