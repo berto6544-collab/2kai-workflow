@@ -7,6 +7,7 @@ import NodeFunction  from './util/util';
 import NodeComponent from './components/nodes';
 import RenderFormField from './components/PanelField';
 import { nodeTypes,getNodeConfig } from './util/nodeArrays';
+import { sleep } from './util/utilResponse';
 
 
 const N8NWorkflowPlatform = () => {
@@ -22,7 +23,7 @@ const N8NWorkflowPlatform = () => {
   const [isExecuting, setIsExecuting] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [activeTab, setActiveTab] = useState('nodes');
-  const[executionOrder,setExecutionOrder] = useState([]);
+  //const[executionOrder,setExecutionOrder] = useState([]);
   const [selectedNodeType, setSelectedNodeType] = useState('trigger');
   const [formData, setFormData] = useState({});
   const [isSavingg,setIsSaving] = useState(false);
@@ -38,6 +39,8 @@ const N8NWorkflowPlatform = () => {
   let responses = null;
   let globalLoops = 0;
   let maxGlobalLoops = 3;
+  let executionOrder = [];
+  let shouldStop = false;
   const categories = [...new Set(nodeTypes.map(node => node.category))];
 
  
@@ -167,9 +170,10 @@ const N8NWorkflowPlatform = () => {
   };
 
   const deleteNode = async(nodeId,node) => {
-
+    executionOrder.filter(n => n.id !== nodeId);
     setNodes(prev => prev.filter(n => n.id !== nodeId));
     setConnections(prev => prev.filter(c => c.from !== nodeId && c.to !== nodeId));
+    //executionOrder = await getExecutionOrder();
     setSelectedNode(null);
     const path = node.path;
     if(path != null){
@@ -179,6 +183,7 @@ const N8NWorkflowPlatform = () => {
       console.log(data)
     }
     
+    console.log(`Deleted ${nodeId} - ${executionOrder}`)
    
   };
 
@@ -234,7 +239,7 @@ const N8NWorkflowPlatform = () => {
       const node = nodes.find(n => n.id === nodeId);
       if (node) {
         executionOrdder.push(node);
-        setExecutionOrder([...executionOrdder]);
+        
  
       }
       
@@ -247,19 +252,12 @@ const N8NWorkflowPlatform = () => {
     
     // Start traversal from all starting nodes
     startingNodes.forEach(node => traverse(node.id));
-    
+    //executionOrder = executionOrdder;
     return executionOrdder;
   };
 
 
 
-
-
-const getTotalConnectionCount = (nodeId,edges) => {
-  const incoming = edges.filter(edge => edge.to === nodeId).length;
-  const outgoing = edges.filter(edge => edge.from === nodeId).length;
-  return { incoming, outgoing, total: incoming + outgoing };
-};
 
 
 async function handleLoopNode(node, data, connections, executionOrder, setNodes) {
@@ -284,14 +282,16 @@ async function handleLoopNode(node, data, connections, executionOrder, setNodes)
   
   // Handle loop counter logic
   let shouldContinueLoop = false;
-  
-  if (data.iterations) {
-    // Initialize max loops if not set
+  // Initialize max loops if not set
     if (data.iterations) {
       maxGlobalLoops = data.iterations;
     }else{
      maxGlobalLoops = 3;
     }
+
+
+  if (maxGlobalLoops) {
+    
     
     // Check if we should continue looping
     if (globalLoops < maxGlobalLoops) {
@@ -301,9 +301,10 @@ async function handleLoopNode(node, data, connections, executionOrder, setNodes)
       console.log(`Loop ${node.id}: iteration ${globalLoops}/${maxGlobalLoops}`);
     } else {
       // Reset counters when loop is complete
-      globalLoops = 0;
-      maxGlobalLoops = 0;
       shouldContinueLoop = false;
+      globalLoops = 0;
+      //maxGlobalLoops = 0;
+      
       console.log(`Loop ${node.id}: completed all iterations`);
     }
   } else {
@@ -391,8 +392,14 @@ const getConditionalNextNode = (currentNode, data, connections, executionOrder,i
 };
 
 const executeWorkflow = async () => {
-  setIsExecuting(true);
-  const executionOrder = await getExecutionOrder();
+  shouldStop = false;
+  await setIsExecuting(true);
+  
+  setNodes(prev => prev.map(n => ({ ...n, status: 'idle' })));
+  executionOrder = await getExecutionOrder();
+  
+  //await sleep(1000)
+  //console.log('execution: ', executionOrder)
   
   if (executionOrder.length === 0) {
     console.log("No connected nodes to execute");
@@ -405,14 +412,22 @@ const executeWorkflow = async () => {
   let executionContext = {};
  
   while (i < executionOrder.length && globalLoops < maxGlobalLoops) {
+    
+    
+   
+
+    
+    
     const node = executionOrder[i];
    
+
+
     setNodes(prev =>
       prev.map(n => (n.id === node.id ? { ...n, status: 'running' } : n))
     );
    
-    await new Promise(resolve => setTimeout(resolve, 1000));
-   
+    
+   await sleep(1000)
     // Execute the node function
     const data = await NodeFunction(node, setNodes, setIsExecuting);
     console.log(`Node ${node.id} returned:`, data);
@@ -422,7 +437,7 @@ const executeWorkflow = async () => {
    
     // Check if node failed
     const isNodeFailure = data?.success === false || data?.completed == false || data == null || data === "failed";
-   
+    
    
   if (isNodeFailure) {
      
@@ -432,6 +447,14 @@ const executeWorkflow = async () => {
       );
     }
 
+    if (shouldStop) {
+        i = executionOrder.length; // or globalLoops = maxGlobalLoops;
+        //i++;
+        //globalLoops++;
+        break; 
+    }
+
+    
 
     // Check for conditional routing first
 const conditionalNextIndex = getConditionalNextNode(node, data, connections, executionOrder, isNodeFailure);
@@ -451,17 +474,18 @@ if (conditionalNextIndex !== null) {
 }
 
 
+
 // Usage in your main execution loop:
-if (node.type === 'loop') {
+//if (node.type === 'loop') {
   const loopResult = await handleLoopNode(node, data, connections, executionOrder, setNodes);
   
   if (loopResult.shouldLoop) {
     // Jump back to the loop target
     i = loopResult.targetIndex;
     continue;
-  }
+  }else{
   // If not looping, continue with normal execution flow
-}else{
+//}else{
 
 
   
@@ -491,16 +515,29 @@ if (node.type === 'loop') {
    
     i++;
   }
+
+
+  
 }
  
 
   setIsExecuting(false);
+  //shouldStop = true;
 };
 
+const stopExecution = () => {
+  shouldStop = true;
+  executionOrder = [];
+  setIsExecuting(false);
+  return shouldStop;
+};
 
 const executeWorkflowFromNode = async (selectedNodeId = null) => {
+   shouldStop = false;
   setIsExecuting(true);
-  const executionOrder = await getExecutionOrder();
+  
+  setNodes(prev => prev.map(n => ({ ...n, status: 'idle' })));
+  executionOrder = await getExecutionOrder();
  
  
   if (executionOrder.length === 0) {
@@ -532,8 +569,14 @@ const executeWorkflowFromNode = async (selectedNodeId = null) => {
     setNodes(prev =>
       prev.map(n => (n.id === node.id ? { ...n, status: 'running' } : n))
     );
+
+    if (shouldStop) {
+   // i = executionOrder.length; // or globalLoops = maxGlobalLoops;
+    break; // optional, but cleaner
+   }
+    
    
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    await sleep(1000)
    
     // Execute the node function
     const data = await NodeFunction(node, setNodes, setIsExecuting);
@@ -545,7 +588,7 @@ const executeWorkflowFromNode = async (selectedNodeId = null) => {
     // Check if node failed
     const isNodeFailure = data?.success === false || data?.completed == false || data?.triggered == false || data == null || data === "failed";
    
-  
+    
    
     // Check for conditional routing first
     const conditionalNextIndex = getConditionalNextNode(node, data, connections, executionOrder,isNodeFailure);
@@ -565,36 +608,18 @@ const executeWorkflowFromNode = async (selectedNodeId = null) => {
     }
    
  // Usage in your main execution loop:
-if (node.type === 'loop') {
+//if (node.type === 'loop') {
   const loopResult = await handleLoopNode(node, data, connections, executionOrder, setNodes);
   
   if (loopResult.shouldLoop) {
     // Jump back to the loop target
     i = loopResult.targetIndex;
     continue;
-  }
+  //}
   // If not looping, continue with normal execution flow
 }else{
 
-    /* if (isNodeFailure) {
-     
-    } else {
-       setNodes(prev =>
-        prev.map(n => (n.id === node.id ? { ...n, status: 'success' } : n))
-      );
-    }*/
-  
-    /*if (node.type === 'http' && !isNodeFailure) {
-      const data = await handleNodeConnections(node, connections, executionOrder)
-     
-      if (data.index !== -1) {
-        i = data.index;
-        console.log('executionOrder: ', data.index)
-      } else {
-        i++
-      }
-      continue;
-    }*/
+    
    
     // Check if current node has outgoing connections
     const hasOutgoingConnections = connections.some(conn => conn.from === node.id);
@@ -623,6 +648,7 @@ if (node.type === 'loop') {
 }
  
   setIsExecuting(false);
+  //shouldStop = true
 };
 
 
@@ -729,13 +755,12 @@ if (node.type === 'loop') {
 
 
  // Handle save button click
-  const handleSave = (e) => {
+  const handleSave = async(e) => {
     e.preventDefault();
     if (!selectedNode) return;
     
     setIsSaving(true)
     
-    setTimeout(()=>{
     // Update the nodes array with the new configuration
     setNodes(prevNodes => 
       prevNodes.map(node => 
@@ -744,10 +769,11 @@ if (node.type === 'loop') {
           : node
       ));
     console.log(nodes)
-    
-    },2000)
 
-    setIsSaving(false)
+    await sleep(400)
+    
+ setIsSaving(false)
+    
 
     // Optional: Show success message or close panel
     //alert('Configuration saved successfully!');
@@ -914,11 +940,16 @@ if (node.type === 'loop') {
             <span>{isExecuting ? 'Executing...' : 'Execute'}</span>
           </button>
           {isExecuting?<button
+            tabIndex={0}
             onClick={()=>{
+            executionOrder = [];
+            shouldStop = true;
             setIsExecuting(false)
-            setExecutionOrder([])
+            stopExecution()
+            
+            
             }}
-            className="flex items-center space-x-2 bg-gray-500 hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed px-4 py-2 rounded-lg transition-all duration-200"
+            className="flex items-center space-x-2 bg-gray-500 hover:bg-gray-600 cursor-pointer  px-4 py-2 rounded-lg transition-all duration-200"
           >
             {<Pause className="w-4 h-4" />}
             
@@ -1111,7 +1142,7 @@ if (node.type === 'loop') {
 
          </div>:null}
 
-        <div  className={`flex gap-2 w-full items-center p-3`}>
+        <div tabIndex={0} className={`flex gap-2 w-full items-center p-3`}>
                 <button tabIndex={0} onClick={handleSave} className={`w-full p-2 bg-yellow-400 hover:bg-yellow-500 text-black rounded-md cursor-pointer disabled:bg-yellow-700`}>{isSavingg?'Saving...':'Save'}</button>
               </div>
         </div>

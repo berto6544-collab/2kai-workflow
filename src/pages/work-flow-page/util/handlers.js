@@ -1,4 +1,4 @@
-import { setReponse,getResponse } from './utilResponse';
+import { setReponse,getResponse, sleep } from './utilResponse';
 let loop = 0;
 // Utility functions for node updates
 const updateNodeStatus = (node, setNodes, status, message = '') => {
@@ -17,8 +17,8 @@ const logExecution = (handlerName, node, result) => {
 // Core workflow handlers
 const triggerHandler = async (node, setNodes, setIsExecuting, data) => {
   updateNodeStatus(node, setNodes, 'running', 'Trigger activated');
-  await new Promise(resolve => setTimeout(resolve, 1000));
-  
+  //await new Promise(resolve => setTimeout(resolve, 1000));
+  await sleep(1000)
   const result = {
     completed: true,
     timestamp: new Date().toISOString(),
@@ -53,8 +53,8 @@ const timeOutHandler = async (node, setNodes, setIsExecuting, data) => {
   const timeout = node?.function?.Timeout || 2;
   updateNodeStatus(node, setNodes, 'running', `Waiting ${timeout} seconds`);
   
-  await new Promise(resolve => setTimeout(resolve, timeout * 1000));
-  
+  //await new Promise(resolve => setTimeout(resolve, timeout * 1000));
+  await sleep(timeout * 1000)
   const result = {
     waited: timeout,
     completed: true,
@@ -74,8 +74,8 @@ const webHookHandler = async (node, setNodes, setIsExecuting, data) => {
   
   try {
     //webhook call
-    await new Promise(resolve => setTimeout(resolve, 500));
-    
+    //await new Promise(resolve => setTimeout(resolve, 500));
+    await sleep(500)
     const result = {
       webhook: true,
       url: webhookUrl,
@@ -102,8 +102,8 @@ const codeHandler = async (node, setNodes, setIsExecuting, data) => {
     const language = node.function?.language || 'javascript';
     
     //code execution
-    await new Promise(resolve => setTimeout(resolve, 300));
-    
+    //await new Promise(resolve => setTimeout(resolve, 300));
+    await sleep(300)
     // Basic JavaScript evaluation (in real implementation, use sandboxed environment)
     let result;
     if (language === 'javascript') {
@@ -130,8 +130,8 @@ const functionHandler = async (node, setNodes, setIsExecuting, data) => {
   
   try {
     //function call
-    await new Promise(resolve => setTimeout(resolve, 200));
-    
+    //await new Promise(resolve => setTimeout(resolve, 200));
+    await sleep(200)
     const result = {
       function: functionName,
       params: params,
@@ -158,7 +158,9 @@ const loopHandler = async (node, setNodes, setIsExecuting, data) => {
   
   const results = [];
    if (timeout > 0) {
-      await new Promise(resolve => setTimeout(resolve, timeout * 1000));
+      //await new Promise(resolve => setTimeout(resolve, timeout * 1000));
+      await sleep(timeout * 1000)
+    
     }
   
   if(loop >= iterations){
@@ -246,8 +248,8 @@ const EmailHandler = async (node, setNodes, setIsExecuting, data) => {
   
   try {
     //email sending
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
+    //await new Promise(resolve => setTimeout(resolve, 1000));
+    await sleep(1000)
     const result = {
       emailSent: true,
       to: to,
@@ -275,8 +277,8 @@ const SlackHandler = async (node, setNodes, setIsExecuting, data) => {
   
   try {
     //Slack API call
-    await new Promise(resolve => setTimeout(resolve, 500));
-    
+    //await new Promise(resolve => setTimeout(resolve, 500));
+    await sleep(500)
     const result = {
       slackSent: true,
       channel: channel,
@@ -303,8 +305,8 @@ const SMSHandler = async (node, setNodes, setIsExecuting, data) => {
   
   try {
     //Twilio SMS sending
-    await new Promise(resolve => setTimeout(resolve, 800));
-    
+    //await new Promise(resolve => setTimeout(resolve, 800));
+    await sleep(800)
     const result = {
       smsSent: true,
       to: to,
@@ -332,8 +334,8 @@ const DatabaseHandler = async (node, setNodes, setIsExecuting, data) => {
   
   try {
     //MySQL query execution
-    await new Promise(resolve => setTimeout(resolve, 600));
-    
+    //await new Promise(resolve => setTimeout(resolve, 600));
+    await sleep(600)
     const result = {
       query: query,
       database: database,
@@ -359,8 +361,8 @@ const PostgreSQLHandler = async (node, setNodes, setIsExecuting, data) => {
   
   try {
     //PostgreSQL query execution
-    await new Promise(resolve => setTimeout(resolve, 550));
-    
+    //await new Promise(resolve => setTimeout(resolve, 550));
+    await sleep(550)
     const result = {
       query: query,
       database: database,
@@ -387,8 +389,8 @@ const MongoDBHandler = async (node, setNodes, setIsExecuting, data) => {
   
   try {
     //MongoDB operation
-    await new Promise(resolve => setTimeout(resolve, 400));
-    
+    //await new Promise(resolve => setTimeout(resolve, 400));
+    await sleep(400)
     const result = {
       collection: collection,
       operation: operation,
@@ -416,8 +418,8 @@ const HubSpotHandler = async (node, setNodes, setIsExecuting, data) => {
   
   try {
     //HubSpot API call
-    await new Promise(resolve => setTimeout(resolve, 700));
-    
+    //await new Promise(resolve => setTimeout(resolve, 700));
+    await sleep(700)
     const result = {
       hubspotAction: action,
       objectType: objectType,
@@ -443,8 +445,8 @@ const MailChimpHandler = async (node, setNodes, setIsExecuting, data) => {
   
   try {
     //MailChimp API call
-    await new Promise(resolve => setTimeout(resolve, 600));
-    
+    //await new Promise(resolve => setTimeout(resolve, 600));
+    await sleep(600)
     const result = {
       mailchimpAction: action,
       listId: listId,
@@ -470,8 +472,8 @@ const AWSHandler = async (node, setNodes, setIsExecuting, data) => {
   
   try {
     //AWS Lambda invocation
-    await new Promise(resolve => setTimeout(resolve, 800));
-    
+    //await new Promise(resolve => setTimeout(resolve, 800));
+    await sleep(800)
     const result = {
       lambdaFunction: functionName,
       invocationId: `inv_${Date.now()}`,
@@ -498,8 +500,8 @@ const GitHubHandler = async (node, setNodes, setIsExecuting, data) => {
   
   try {
     //GitHub API call
-    await new Promise(resolve => setTimeout(resolve, 500));
-    
+    //await new Promise(resolve => setTimeout(resolve, 500));
+    await sleep(500)
     const result = {
       githubAction: action,
       repository: repository,
@@ -526,8 +528,8 @@ const OpenAIHandler = async (node, setNodes, setIsExecuting, data) => {
   
   try {
     //OpenAI API call
-    await new Promise(resolve => setTimeout(resolve, 1200));
-    
+    //await new Promise(resolve => setTimeout(resolve, 1200));
+    await sleep(1200)
     const result = {
       model: model,
       prompt: prompt,
@@ -553,8 +555,8 @@ const StabilityAiHandler = async (node, setNodes, setIsExecuting, data) => {
   
   try {
     //Stability AI API call
-    await new Promise(resolve => setTimeout(resolve, 2000));
-    
+    //await new Promise(resolve => setTimeout(resolve, 2000));
+    await sleep(2000)
     const result = {
       model: model,
       prompt: prompt,
@@ -581,8 +583,8 @@ const GoogleDriveHandler = async (node, setNodes, setIsExecuting, data) => {
   
   try {
     //Google Drive API call
-    await new Promise(resolve => setTimeout(resolve, 900));
-    
+   // await new Promise(resolve => setTimeout(resolve, 900));
+    await sleep(700)
     const result = {
       driveAction: action,
       fileName: fileName,
@@ -608,8 +610,8 @@ const DropBoxHandler = async (node, setNodes, setIsExecuting, data) => {
   
   try {
     //Dropbox API call
-    await new Promise(resolve => setTimeout(resolve, 700));
-    
+    //await new Promise(resolve => setTimeout(resolve, 700));
+    await sleep(700)
     const result = {
       dropboxAction: action,
       filePath: filePath,
@@ -636,8 +638,8 @@ const VoiceHandler = async (node, setNodes, setIsExecuting, data) => {
   
   try {
     //speech-to-text processing
-    await new Promise(resolve => setTimeout(resolve, 1500));
-    
+    //await new Promise(resolve => setTimeout(resolve, 1500));
+    await sleep(1500)
     const result = {
       audioUrl: audioUrl,
       language: language,
@@ -664,8 +666,8 @@ const AnalyticsHandler = async (node, setNodes, setIsExecuting, data) => {
   
   try {
     //analytics tracking
-    await new Promise(resolve => setTimeout(resolve, 300));
-    
+    //await new Promise(resolve => setTimeout(resolve, 300));
+    await sleep(300)
     const result = {
       event: event,
       properties: properties,
@@ -692,8 +694,8 @@ const AuthHandler = async (node, setNodes, setIsExecuting, data) => {
   
   try {
     //authentication check
-    await new Promise(resolve => setTimeout(resolve, 400));
-    
+    //await new Promise(resolve => setTimeout(resolve, 400));
+    await sleep(400)
     const isValid = Math.random() > 0.1; // 90% success rate
     
     if (!isValid) {

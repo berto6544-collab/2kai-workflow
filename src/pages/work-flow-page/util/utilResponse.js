@@ -1,4 +1,5 @@
 let response = null
+const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
 
 const setReponse = (resp) =>{
@@ -11,5 +12,6 @@ const getResponse = ()=>{
 
 export {
     setReponse,
-    getResponse
+    getResponse,
+    sleep
 }
