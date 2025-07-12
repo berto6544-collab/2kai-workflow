@@ -8,6 +8,7 @@ import NodeComponent from './components/nodes';
 import RenderFormField from './components/PanelField';
 import { nodeTypes,getNodeConfig } from './util/nodeArrays';
 
+
 const N8NWorkflowPlatform = () => {
   const [nodes, setNodes] = useState([]);
   const [connections, setConnections] = useState([]);
@@ -24,7 +25,7 @@ const N8NWorkflowPlatform = () => {
   const[executionOrder,setExecutionOrder] = useState([]);
   const [selectedNodeType, setSelectedNodeType] = useState('trigger');
   const [formData, setFormData] = useState({});
-  const [isSaving,setIsSaving] = useState(false)
+  const [isSavingg,setIsSaving] = useState(false);
   
   // Pan and zoom states
   const [canvasOffset, setCanvasOffset] = useState({ x: 0, y: 0 });
@@ -34,8 +35,9 @@ const N8NWorkflowPlatform = () => {
   
   const canvasRef = useRef(null);
   const nodeIdCounter = useRef(0);
-
-
+  let responses = null;
+  let globalLoops = 0;
+  let maxGlobalLoops = 3;
   const categories = [...new Set(nodeTypes.map(node => node.category))];
 
  
@@ -260,23 +262,97 @@ const getTotalConnectionCount = (nodeId,edges) => {
 };
 
 
+async function handleLoopNode(node, data, connections, executionOrder, setNodes) {
+  console.log(`Node ${node.id} is a loop node`);
+  
+  // Find what this loop node is connected to
+  const loopConnection = connections.find(conn => conn.from === node.id);
+  
+  if (!loopConnection) {
+    console.log(`Loop node ${node.id} has no valid loop connection, continuing normally`);
+    return { shouldLoop: false, targetIndex: -1 };
+  }
+  
+  const loopTargetNodeId = loopConnection.to;
+  const loopTargetIndex = executionOrder.findIndex(nodeId => nodeId.id == loopTargetNodeId);
+  console.log('loop: ',loopTargetNodeId)
+  
+  if (loopTargetIndex === -1) {
+    console.log(`Loop target node ${loopTargetNodeId} not found in execution order`);
+    return { shouldLoop: false, targetIndex: -1 };
+  }
+  
+  // Handle loop counter logic
+  let shouldContinueLoop = false;
+  
+  if (data.iterations) {
+    // Initialize max loops if not set
+    if (data.iterations) {
+      maxGlobalLoops = data.iterations;
+    }else{
+     maxGlobalLoops = 3;
+    }
+    
+    // Check if we should continue looping
+    if (globalLoops < maxGlobalLoops) {
+      globalLoops++;
+      shouldContinueLoop = true;
+
+      console.log(`Loop ${node.id}: iteration ${globalLoops}/${maxGlobalLoops}`);
+    } else {
+      // Reset counters when loop is complete
+      globalLoops = 0;
+      maxGlobalLoops = 0;
+      shouldContinueLoop = false;
+      console.log(`Loop ${node.id}: completed all iterations`);
+    }
+  } else {
+    // If no iterations specified, loop indefinitely (be careful with this!)
+    maxGlobalLoops = 3;
+    shouldContinueLoop = true;
+    console.log(`Loop ${node.id}: no iteration limit specified`);
+  }
+  
+  // Set loop node status
+  const status = shouldContinueLoop ? 'success' : 'completed';
+  setNodes(prev =>
+    prev.map(n => (n.id === node.id ? { ...n, status } : n))
+  );
+  
+  if (shouldContinueLoop) {
+    console.log(`Loop node ${node.id} jumping back to ${loopTargetNodeId} at index ${loopTargetIndex}`);
+    return { shouldLoop: true, targetIndex: loopTargetIndex };
+  } else {
+    console.log(`Loop node ${node.id} has completed, continuing to next node`);
+    return { shouldLoop: false, targetIndex: -1 };
+  }
+}
+
 
   
 // Helper function to find connections to Success/Failed nodes
-const findConditionalConnections = (nodeId, connections) => {
-  const nodeConnections = connections.filter(conn => conn.source === nodeId);
+const findConditionalConnections = (node, connections,data,isNodeFailure) => {
+  const nodeConnections = connections.filter(conn => conn.from === node.id);
   
-  const successConnection = nodeConnections.find(conn => {
-    // Find connection to a node with Success status_type
-    const targetNode = nodes.find(n => n.id === conn.target);
-    return targetNode && targetNode.function.status_type === "Success";
-  });
-  
-  const failedConnection = nodeConnections.find(conn => {
-    // Find connection to a node with Failed status_type
-    const targetNode = nodes.find(n => n.id === conn.target);
-    return targetNode && targetNode.function.status_type === "Failed";
-  });
+const successConnection = nodeConnections.find(conn => {
+  const targetNode = nodes.find(n => n.id === conn.to);
+  return targetNode && (
+    // Node has Success status
+    (targetNode.function && targetNode.function.status_type === "Success") ||
+    // Node is complete (not failed) and not an "if" type
+    (!isNodeFailure && targetNode.type !== "if")
+  );
+});
+
+const failedConnection = nodeConnections.find(conn => {
+  const targetNode = nodes.find(n => n.id === conn.to);
+  return targetNode && (
+    // Node has Failed status
+    (targetNode.function && targetNode.function.status_type === "Failed") ||
+    // Node is failed and is an "if" type
+    (isNodeFailure && targetNode.type === "if")
+  );
+});
   
   return { successConnection, failedConnection };
 };
@@ -285,16 +361,18 @@ const findConditionalConnections = (nodeId, connections) => {
 const isNodeGreen = (node, data) => {
   // Multiple conditions to determine if node is "green"/successful
   return (
-    node.status === 'success' ||
     data?.success === true ||
     data?.completed === true ||
     data?.status === 'success'
   );
 };
 
+
+
+
 // Helper function to get next node based on conditional routing
-const getConditionalNextNode = (currentNode, data, connections, executionOrder) => {
-  const { successConnection, failedConnection } = findConditionalConnections(currentNode.id, connections);
+const getConditionalNextNode = (currentNode, data, connections, executionOrder,isNodeFailure) => {
+  const { successConnection, failedConnection } = findConditionalConnections(currentNode, connections,data,isNodeFailure);
   
   if (!successConnection && !failedConnection) {
     return null; // No conditional routing needed
@@ -302,10 +380,10 @@ const getConditionalNextNode = (currentNode, data, connections, executionOrder) 
   
   const isGreen = isNodeGreen(currentNode, data);
   const targetConnection = isGreen ? successConnection : failedConnection;
-  
+  console.log('success: ',JSON.stringify(successConnection)+' else error: '+JSON.stringify(failedConnection))
   if (targetConnection) {
     // Find the target node in execution order
-    const targetNodeIndex = executionOrder.findIndex(node => node.id === targetConnection.target);
+    const targetNodeIndex = executionOrder.findIndex(node => node.id === targetConnection.to);
     return targetNodeIndex !== -1 ? targetNodeIndex : null;
   }
   
@@ -323,11 +401,10 @@ const executeWorkflow = async () => {
   }
  
   let i = 0;
-  let globalLoops = 0;
-  const maxGlobalLoops = 5;
+ 
   let executionContext = {};
  
-  while (i < executionOrder.length) {
+  while (i < executionOrder.length && globalLoops < maxGlobalLoops) {
     const node = executionOrder[i];
    
     setNodes(prev =>
@@ -344,47 +421,50 @@ const executeWorkflow = async () => {
     executionContext[node.id] = data;
    
     // Check if node failed
-    const isNodeFailure = (data?.success === false || data?.completed == false || data == null || data === "failed");
+    const isNodeFailure = data?.success === false || data?.completed == false || data == null || data === "failed";
    
-    // Check for conditional routing first
-    const conditionalNextIndex = getConditionalNextNode(node, data, connections, executionOrder);
    
-    if (conditionalNextIndex !== null) {
-      console.log(`Node ${node.id} has conditional routing, jumping to index ${conditionalNextIndex}`);
-     
-      // Set current node status based on condition
-      const finalStatus = isNodeGreen(node, data) ? 'success' : 'error';
-      setNodes(prev =>
-        prev.map(n => (n.id === node.id ? { ...n, status: finalStatus } : n))
-      );
-     
-      // Jump to the conditional target
-      i = conditionalNextIndex;
-      continue;
-    }
-   
-    if (isNodeFailure) {
+  if (isNodeFailure) {
      
     } else {
        setNodes(prev =>
         prev.map(n => (n.id === node.id ? { ...n, status: 'success' } : n))
       );
     }
-   
-    
-    
-    if (node.type === 'http' && !isNodeFailure) {
-      const data = await handleNodeConnections(node, connections, executionOrder)
-     
-      if (data.index !== -1) {
-        i = data.index;
-        console.log('executionOrder: ', data.index)
-      } else {
-       i++
-        //console.log("No Success node found");
-      }
-      continue;
-    }
+
+
+    // Check for conditional routing first
+const conditionalNextIndex = getConditionalNextNode(node, data, connections, executionOrder, isNodeFailure);
+
+if (conditionalNextIndex !== null) {
+  console.log(`Node ${node.id} has conditional routing, jumping to index ${conditionalNextIndex}`);
+ 
+  // Set current node status based on condition
+  const finalStatus = isNodeGreen(node, data) ? 'success' : 'error';
+  setNodes(prev =>
+    prev.map(n => (n.id === node.id ? { ...n, status: finalStatus } : n))
+  );
+ 
+  // Jump to the conditional target
+  i = conditionalNextIndex;
+  continue;
+}
+
+
+// Usage in your main execution loop:
+if (node.type === 'loop') {
+  const loopResult = await handleLoopNode(node, data, connections, executionOrder, setNodes);
+  
+  if (loopResult.shouldLoop) {
+    // Jump back to the loop target
+    i = loopResult.targetIndex;
+    continue;
+  }
+  // If not looping, continue with normal execution flow
+}else{
+
+
+  
    
 
     // Check if current node has outgoing connections
@@ -411,6 +491,7 @@ const executeWorkflow = async () => {
    
     i++;
   }
+}
  
 
   setIsExecuting(false);
@@ -443,8 +524,6 @@ const executeWorkflowFromNode = async (selectedNodeId = null) => {
   }
  
   let i = startIndex; // Start from selected node
-  let globalLoops = 0;
-  const maxGlobalLoops = 5;
   let executionContext = {};
  
   while (i < executionOrder.length && globalLoops < maxGlobalLoops) {
@@ -464,10 +543,12 @@ const executeWorkflowFromNode = async (selectedNodeId = null) => {
     executionContext[node.id] = data;
    
     // Check if node failed
-    const isNodeFailure = (data?.success === false || data?.completed == false || data == null || data === "failed");
+    const isNodeFailure = data?.success === false || data?.completed == false || data?.triggered == false || data == null || data === "failed";
+   
+  
    
     // Check for conditional routing first
-    const conditionalNextIndex = getConditionalNextNode(node, data, connections, executionOrder);
+    const conditionalNextIndex = getConditionalNextNode(node, data, connections, executionOrder,isNodeFailure);
    
     if (conditionalNextIndex !== null) {
       console.log(`Node ${node.id} has conditional routing, jumping to index ${conditionalNextIndex}`);
@@ -483,15 +564,27 @@ const executeWorkflowFromNode = async (selectedNodeId = null) => {
       continue;
     }
    
-    if (isNodeFailure) {
+ // Usage in your main execution loop:
+if (node.type === 'loop') {
+  const loopResult = await handleLoopNode(node, data, connections, executionOrder, setNodes);
+  
+  if (loopResult.shouldLoop) {
+    // Jump back to the loop target
+    i = loopResult.targetIndex;
+    continue;
+  }
+  // If not looping, continue with normal execution flow
+}else{
+
+    /* if (isNodeFailure) {
      
     } else {
        setNodes(prev =>
         prev.map(n => (n.id === node.id ? { ...n, status: 'success' } : n))
       );
-    }
-   
-    if (node.type === 'http' && !isNodeFailure) {
+    }*/
+  
+    /*if (node.type === 'http' && !isNodeFailure) {
       const data = await handleNodeConnections(node, connections, executionOrder)
      
       if (data.index !== -1) {
@@ -501,7 +594,7 @@ const executeWorkflowFromNode = async (selectedNodeId = null) => {
         i++
       }
       continue;
-    }
+    }*/
    
     // Check if current node has outgoing connections
     const hasOutgoingConnections = connections.some(conn => conn.from === node.id);
@@ -527,127 +620,10 @@ const executeWorkflowFromNode = async (selectedNodeId = null) => {
    
     i++;
   }
+}
  
   setIsExecuting(false);
 };
-
-
-function handleNodeConnections(node, connections, executionOrder) {
-  // Find all connections from the current node
-  const nodeConnections = connections.filter(conn => conn.from === node.id);
-  console.log(nodeConnections);
- 
-  // Find nodes that are connected to this node
-  const connectedNodeIds = nodeConnections.map(conn => conn.to);
- 
-  console.log(connectedNodeIds)
-  
-  // Check if any connected nodes have non-failed status or no status_type
-  const hasNonFailedConnectedNode = connectedNodeIds.some(nodeId => {
-    const connectedNode = executionOrder.find(n => n.id === nodeId);
-    return connectedNode &&
-           connectedNode.function &&
-           (connectedNode.function.status_type !== "Failed" ||
-            !connectedNode.function.hasOwnProperty('status_type')) || !connectedNode.hasOwnProperty('function');
-  });
- 
-  let index;
-  console.log("hasNonFailedConnectedNode, ", hasNonFailedConnectedNode)
-  
-  if (hasNonFailedConnectedNode && node.status == "success") {
-    // Find index of first non-failed node (Success or no status_type) in execution order
-    index = executionOrder.findIndex(n => {
-      // Node without function property
-      if (!n.hasOwnProperty('function')) {
-        return true;
-      }
-      
-      // Node with function but no status_type property
-      if (n.function && !n.function.hasOwnProperty('status_type')) {
-        return true;
-      }
-      
-      // Node with Success status
-      if (n.function && n.function.status_type === "Success") {
-        return true;
-      }
-      
-      return false;
-    });
-  } else {
-    // Find index of first failed node
-    index = executionOrder.findIndex(n =>
-      n.function && n.function.status_type === "Failed"
-    );
-  }
- 
-  console.log(`Selected index: ${index}`);
-  return { nodeConnections, index, hasNonFailedConnectedNode };
-}
-
-
-
-
-// Helper function to evaluate conditions
-const evaluateCondition = (conditionNode, executionContext, lastNodeFailed) => {
-  const { status, condition, trigger } = conditionNode || {};
-  
-
-  if (conditionNode.type == "if" && conditionNode.function.status_type == "Failed"){
-    return lastNodeFailed;
-  }
-  
-  
-  // Check for success status condition
-  if (conditionNode.type == "if" &&  conditionNode.function.status_type == "Success") {
-    return !lastNodeFailed;
-  }
-  
-  // Add more condition types as needed
-  // You can also check values in executionContext here
-  
-  return false; // Default to false if condition is not recognized
-};
-
-
-
-
-// Helper function to find if a node connects to a "failed" status node
-const findFailedNodeConnection = (nodeId, edges) => {
-  return edges.find(edge => 
-    edge.from === nodeId && 
-    (edge.status === 'error' || edge.type === "loop")
-  );
-};
-
-// Helper function to find the target node to loop back to
-const findLoopbackTarget = (failedNodeId, edges, executionOrder) => {
-  // Look for a specific loopback connection
-  const loopbackEdge = edges.find(edge => 
-    edge.from === failedNodeId && 
-    edge.type === 'if'
-  );
-  
-  if (loopbackEdge) {
-    return executionOrder.findIndex(node => node.id === loopbackEdge.target);
-  }
-  
-  // Loop back to the previous HTTP request or timeout node
-  const currentIndex = executionOrder.findIndex(node => node.id === failedNodeId);
-  
-  for (let i = currentIndex - 1; i >= 0; i--) {
-    const node = executionOrder[i];
-    if (node.type === 'http' || node.type === 'timeout') {
-      return i;
-    }
-  }
-  
-  // Loop back to the beginning if no specific target found
-  return 0;
-};
-
-
-
 
 
 
@@ -753,7 +729,8 @@ const findLoopbackTarget = (failedNodeId, edges, executionOrder) => {
 
 
  // Handle save button click
-  const handleSave = () => {
+  const handleSave = (e) => {
+    e.preventDefault();
     if (!selectedNode) return;
     
     setIsSaving(true)
@@ -769,6 +746,7 @@ const findLoopbackTarget = (failedNodeId, edges, executionOrder) => {
     console.log(nodes)
     
     },2000)
+
     setIsSaving(false)
 
     // Optional: Show success message or close panel
@@ -930,7 +908,7 @@ const findLoopbackTarget = (failedNodeId, edges, executionOrder) => {
           <button
             onClick={executeWorkflow}
             disabled={isExecuting || nodes.length === 0}
-            className="flex items-center space-x-2 bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 disabled:opacity-50 disabled:cursor-not-allowed px-4 py-2 rounded-lg transition-all duration-200"
+            className="flex items-center cursor-pointer space-x-2 bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 disabled:opacity-50 disabled:cursor-not-allowed px-4 py-2 rounded-lg transition-all duration-200"
           >
             {isExecuting ? <RotateCcw className="w-4 h-4 animate-spin" /> : <Play className="w-4 h-4" />}
             <span>{isExecuting ? 'Executing...' : 'Execute'}</span>
@@ -1134,7 +1112,7 @@ const findLoopbackTarget = (failedNodeId, edges, executionOrder) => {
          </div>:null}
 
         <div  className={`flex gap-2 w-full items-center p-3`}>
-                <button tabIndex={0} onClick={()=>{handleSave();}} className={`w-full p-2 bg-yellow-400 hover:bg-yellow-500 text-black rounded-md cursor-pointer disabled:bg-yellow-700`}>{isSaving==true?'Saving':'Save'}</button>
+                <button tabIndex={0} onClick={handleSave} className={`w-full p-2 bg-yellow-400 hover:bg-yellow-500 text-black rounded-md cursor-pointer disabled:bg-yellow-700`}>{isSavingg?'Saving...':'Save'}</button>
               </div>
         </div>
       )}

@@ -1,3 +1,5 @@
+import { setReponse,getResponse } from './utilResponse';
+let loop = 0;
 // Utility functions for node updates
 const updateNodeStatus = (node, setNodes, status, message = '') => {
   setNodes(nodes => 
@@ -9,7 +11,7 @@ const updateNodeStatus = (node, setNodes, status, message = '') => {
 };
 
 const logExecution = (handlerName, node, result) => {
-  console.log(`[${handlerName}] Node ${node.id} executed:`, result);
+  //console.log(`[${handlerName}] Node ${node.id} executed:`, result);
 };
 
 // Core workflow handlers
@@ -18,7 +20,7 @@ const triggerHandler = async (node, setNodes, setIsExecuting, data) => {
   await new Promise(resolve => setTimeout(resolve, 1000));
   
   const result = {
-    triggered: true,
+    completed: true,
     timestamp: new Date().toISOString(),
     nodeId: node.id,
     data: data || {}
@@ -66,12 +68,12 @@ const timeOutHandler = async (node, setNodes, setIsExecuting, data) => {
 
 const webHookHandler = async (node, setNodes, setIsExecuting, data) => {
   updateNodeStatus(node, setNodes, 'running', 'Processing webhook');
-  
+  const datta = data || getResponse();
   const webhookUrl = node.function?.url || 'https://2kai-agent.com/app/webhook/'+node.path;
   const method = node.function?.method || 'POST';
   
   try {
-    // Simulate webhook call
+    //webhook call
     await new Promise(resolve => setTimeout(resolve, 500));
     
     const result = {
@@ -80,7 +82,7 @@ const webHookHandler = async (node, setNodes, setIsExecuting, data) => {
       method: method,
       status: 200,
       response: 'Webhook processed successfully',
-      data: data
+      data: datta
     };
     
     updateNodeStatus(node, setNodes, 'success', 'Webhook sent successfully');
@@ -99,7 +101,7 @@ const codeHandler = async (node, setNodes, setIsExecuting, data) => {
     const code = node.function?.code || 'return data;';
     const language = node.function?.language || 'javascript';
     
-    // Simulate code execution
+    //code execution
     await new Promise(resolve => setTimeout(resolve, 300));
     
     // Basic JavaScript evaluation (in real implementation, use sandboxed environment)
@@ -122,12 +124,12 @@ const codeHandler = async (node, setNodes, setIsExecuting, data) => {
 
 const functionHandler = async (node, setNodes, setIsExecuting, data) => {
   updateNodeStatus(node, setNodes, 'running', 'Calling function');
-  
-  const functionName = node.function?.name || 'defaultFunction';
+  const datta = data || getResponse();
+  const functionName = node.function?.functionName || 'defaultFunction';
   const params = node.function?.params || {};
   
   try {
-    // Simulate function call
+    //function call
     await new Promise(resolve => setTimeout(resolve, 200));
     
     const result = {
@@ -135,7 +137,7 @@ const functionHandler = async (node, setNodes, setIsExecuting, data) => {
       params: params,
       executed: true,
       output: `Function ${functionName} executed with params: ${JSON.stringify(params)}`,
-      data: data
+      data: datta
     };
     
     updateNodeStatus(node, setNodes, 'success', `Function ${functionName} executed`);
@@ -151,28 +153,26 @@ const functionHandler = async (node, setNodes, setIsExecuting, data) => {
 const loopHandler = async (node, setNodes, setIsExecuting, data) => {
   updateNodeStatus(node, setNodes, 'running', 'Processing loop');
   
-  const iterations = node.function?.iterations || 1;
+  const iterations = node.function?.Iterations || 1;
   const timeout = node.function?.Timeout || 0;
   
   const results = [];
-  
-  for (let i = 0; i < iterations; i++) {
-    if (timeout > 0) {
+   if (timeout > 0) {
       await new Promise(resolve => setTimeout(resolve, timeout * 1000));
     }
-    
-    results.push({
-      iteration: i + 1,
-      data: data,
-      timestamp: new Date().toISOString()
-    });
-    
-    updateNodeStatus(node, setNodes, 'running', `Loop iteration ${i + 1}/${iterations}`);
-  }
   
-  const result = {
+  if(loop >= iterations){
+    loop = 0;
+    setIsExecuting(false)
+  }else{
+  loop++
+  
+}
+
+const result = {
     looped: true,
     iterations: iterations,
+    loop:loop,
     results: results,
     data: data
   };
@@ -207,7 +207,7 @@ const ifHandler = async (node, setNodes, setIsExecuting, data) => {
     condition: condition,
     conditionMet: conditionMet,
     branch: conditionMet ? 'true' : 'false',
-    data: data
+    data: getResponse()
   };
   
   updateNodeStatus(node, setNodes, 'success', `Condition: ${conditionMet ? 'TRUE' : 'FALSE'}`);
@@ -228,7 +228,7 @@ const switchHandler = async (node, setNodes, setIsExecuting, data) => {
     value: switchValue,
     selectedCase: selectedCase,
     availableCases: Object.keys(cases),
-    data: data
+    data: getResponse()
   };
   
   updateNodeStatus(node, setNodes, 'success', `Switch case: ${selectedCase}`);
@@ -245,7 +245,7 @@ const EmailHandler = async (node, setNodes, setIsExecuting, data) => {
   const body = node.function?.body || 'This is an automated message from your workflow.';
   
   try {
-    // Simulate email sending
+    //email sending
     await new Promise(resolve => setTimeout(resolve, 1000));
     
     const result = {
@@ -274,7 +274,7 @@ const SlackHandler = async (node, setNodes, setIsExecuting, data) => {
   const webhookUrl = node.function?.webhookUrl;
   
   try {
-    // Simulate Slack API call
+    //Slack API call
     await new Promise(resolve => setTimeout(resolve, 500));
     
     const result = {
@@ -302,7 +302,7 @@ const SMSHandler = async (node, setNodes, setIsExecuting, data) => {
   const from = node.function?.from || '+0987654321';
   
   try {
-    // Simulate Twilio SMS sending
+    //Twilio SMS sending
     await new Promise(resolve => setTimeout(resolve, 800));
     
     const result = {
@@ -331,7 +331,7 @@ const DatabaseHandler = async (node, setNodes, setIsExecuting, data) => {
   const database = node.function?.database || 'default_db';
   
   try {
-    // Simulate MySQL query execution
+    //MySQL query execution
     await new Promise(resolve => setTimeout(resolve, 600));
     
     const result = {
@@ -358,7 +358,7 @@ const PostgreSQLHandler = async (node, setNodes, setIsExecuting, data) => {
   const database = node.function?.database || 'postgres';
   
   try {
-    // Simulate PostgreSQL query execution
+    //PostgreSQL query execution
     await new Promise(resolve => setTimeout(resolve, 550));
     
     const result = {
@@ -386,7 +386,7 @@ const MongoDBHandler = async (node, setNodes, setIsExecuting, data) => {
   const query = node.function?.query || '{}';
   
   try {
-    // Simulate MongoDB operation
+    //MongoDB operation
     await new Promise(resolve => setTimeout(resolve, 400));
     
     const result = {
@@ -415,7 +415,7 @@ const HubSpotHandler = async (node, setNodes, setIsExecuting, data) => {
   const objectType = node.function?.objectType || 'contact';
   
   try {
-    // Simulate HubSpot API call
+    //HubSpot API call
     await new Promise(resolve => setTimeout(resolve, 700));
     
     const result = {
@@ -442,7 +442,7 @@ const MailChimpHandler = async (node, setNodes, setIsExecuting, data) => {
   const listId = node.function?.listId || 'default_list';
   
   try {
-    // Simulate MailChimp API call
+    //MailChimp API call
     await new Promise(resolve => setTimeout(resolve, 600));
     
     const result = {
@@ -469,7 +469,7 @@ const AWSHandler = async (node, setNodes, setIsExecuting, data) => {
   const payload = node.function?.payload || data;
   
   try {
-    // Simulate AWS Lambda invocation
+    //AWS Lambda invocation
     await new Promise(resolve => setTimeout(resolve, 800));
     
     const result = {
@@ -497,7 +497,7 @@ const GitHubHandler = async (node, setNodes, setIsExecuting, data) => {
   const repository = node.function?.repository || 'user/repo';
   
   try {
-    // Simulate GitHub API call
+    //GitHub API call
     await new Promise(resolve => setTimeout(resolve, 500));
     
     const result = {
@@ -517,7 +517,7 @@ const GitHubHandler = async (node, setNodes, setIsExecuting, data) => {
   }
 };
 
-// AI handlers
+//AI handlers
 const OpenAIHandler = async (node, setNodes, setIsExecuting, data) => {
   updateNodeStatus(node, setNodes, 'running', 'Processing OpenAI request');
   
@@ -525,7 +525,7 @@ const OpenAIHandler = async (node, setNodes, setIsExecuting, data) => {
   const prompt = node.function?.prompt || 'Analyze the following data';
   
   try {
-    // Simulate OpenAI API call
+    //OpenAI API call
     await new Promise(resolve => setTimeout(resolve, 1200));
     
     const result = {
@@ -552,7 +552,7 @@ const StabilityAiHandler = async (node, setNodes, setIsExecuting, data) => {
   const model = node.function?.model || 'stable-diffusion-xl';
   
   try {
-    // Simulate Stability AI API call
+    //Stability AI API call
     await new Promise(resolve => setTimeout(resolve, 2000));
     
     const result = {
@@ -572,7 +572,7 @@ const StabilityAiHandler = async (node, setNodes, setIsExecuting, data) => {
   }
 };
 
-// File storage handlers
+//File storage handlers
 const GoogleDriveHandler = async (node, setNodes, setIsExecuting, data) => {
   updateNodeStatus(node, setNodes, 'running', 'Processing Google Drive operation');
   
@@ -580,7 +580,7 @@ const GoogleDriveHandler = async (node, setNodes, setIsExecuting, data) => {
   const fileName = node.function?.fileName || 'workflow_data.json';
   
   try {
-    // Simulate Google Drive API call
+    //Google Drive API call
     await new Promise(resolve => setTimeout(resolve, 900));
     
     const result = {
@@ -607,7 +607,7 @@ const DropBoxHandler = async (node, setNodes, setIsExecuting, data) => {
   const filePath = node.function?.filePath || '/workflow_data.json';
   
   try {
-    // Simulate Dropbox API call
+    //Dropbox API call
     await new Promise(resolve => setTimeout(resolve, 700));
     
     const result = {
@@ -635,7 +635,7 @@ const VoiceHandler = async (node, setNodes, setIsExecuting, data) => {
   const language = node.function?.language || 'en-US';
   
   try {
-    // Simulate speech-to-text processing
+    //speech-to-text processing
     await new Promise(resolve => setTimeout(resolve, 1500));
     
     const result = {
@@ -663,7 +663,7 @@ const AnalyticsHandler = async (node, setNodes, setIsExecuting, data) => {
   const properties = node.function?.properties || {};
   
   try {
-    // Simulate analytics tracking
+    //analytics tracking
     await new Promise(resolve => setTimeout(resolve, 300));
     
     const result = {
@@ -691,7 +691,7 @@ const AuthHandler = async (node, setNodes, setIsExecuting, data) => {
   const token = node.function?.token || 'mock_token';
   
   try {
-    // Simulate authentication check
+    //authentication check
     await new Promise(resolve => setTimeout(resolve, 400));
     
     const isValid = Math.random() > 0.1; // 90% success rate
@@ -717,7 +717,7 @@ const AuthHandler = async (node, setNodes, setIsExecuting, data) => {
   }
 };
 
-// Enhanced HTTP handler with comprehensive error handling and configuration
+//HTTP handler with comprehensive error handling and configuration
 const httpHandler = async (node, setNodes, setIsExecuting, data) => {
   updateNodeStatus(node, setNodes, 'running', 'Preparing HTTP request');
   
@@ -726,7 +726,7 @@ const httpHandler = async (node, setNodes, setIsExecuting, data) => {
     const error = {
       success: false,
       status: 'Error: HTTP URL is required',
-      message:`HTTP URL is required`
+      message: `HTTP URL is required`
     }
     
     await errorHandler('error', setIsExecuting, setNodes, node, error.message);
@@ -747,14 +747,13 @@ const httpHandler = async (node, setNodes, setIsExecuting, data) => {
       method: method,
       headers: {
         'Content-Type': 'application/json',
-        'User-Agent': 'Workflow-Engine/1.0',
-        ...config.customHeaders || {}
+        ...config.headers || {}
       }
     };
     
     // Handle different content types for headers
     if (config.contentType) {
-      requestOptions.headers['Content-Type'] = config.headers
+      requestOptions.headers['Content-Type'] = config.contentType; // Fixed: was config.headers
     }
     
     // Add authorization if provided
@@ -783,18 +782,32 @@ const httpHandler = async (node, setNodes, setIsExecuting, data) => {
         requestOptions.body = JSON.stringify(data);
       }
     }
-    requestOptions.mode = 'no-cors';
+    
+    // Remove no-cors mode - this was causing issues
+    // requestOptions.mode = 'no-cors';
+    
+    // Add CORS proxy if needed
+    //let finalUrl = url;
+   // if (config.useCorsProxy) {
+      let finalUrl = `https://cors-anywhere.herokuapp.com/${url}`;
+      // Alternative proxies:
+      // finalUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`;
+      // finalUrl = `https://corsproxy.io/?${encodeURIComponent(url)}`;
+    //}
+    
     // Add query parameters if provided
-    let finalUrl = url;
-    if (config.queryParams) {
+    /*if (config.queryParams) {
       const searchParams = new URLSearchParams(config.queryParams);
       finalUrl += (url.includes('?') ? '&' : '?') + searchParams.toString();
-    }
+    }*/
     
     // Create abort controller for timeout
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), timeout);
     requestOptions.signal = controller.signal;
+    
+    // Store start time for response time calculation
+    const startTime = Date.now();
     
     // Make the HTTP request
     const response = await fetch(finalUrl, requestOptions);
@@ -807,24 +820,29 @@ const httpHandler = async (node, setNodes, setIsExecuting, data) => {
     
     // Parse response based on content type
     let responseData;
-    const contentType = response.headers.get('content-type') || '';
+    const responseContentType = response.headers || '';
     
-    if (config.responseType === 'json' || contentType.includes('application/json')) {
-      responseData = await response.json();
-    } else if (config.responseType === 'text' || contentType.includes('text/')) {
-      responseData = await response.text();
-    } else if (config.responseType === 'blob') {
-      responseData = await response.blob();
-    } else if (config.responseType === 'arrayBuffer') {
-      responseData = await response.arrayBuffer();
-    } else {
-      // Auto-detect based on content type
-      if (contentType.includes('application/json')) {
+    try {
+      // Auto-detect based on response content type
+      if (responseContentType.includes('application/json')) {
         responseData = await response.json();
-      } else {
+      } else if (responseContentType.includes('text/')) {
         responseData = await response.text();
+      } else {
+        // Try JSON first, fallback to text
+        const text = await response.text();
+        try {
+          responseData = JSON.parse(text);
+        } catch {
+          responseData = text;
+        }
       }
+    } catch (parseError) {
+      // If parsing fails, return raw text
+      responseData = await response.text();
     }
+    
+    //console.log(responseData);
     
     const result = {
       success: true,
@@ -832,12 +850,11 @@ const httpHandler = async (node, setNodes, setIsExecuting, data) => {
       statusText: response.statusText,
       headers: Object.fromEntries(response.headers.entries()),
       data: responseData,
-      url: finalUrl,
-      method: method,
       timestamp: new Date().toISOString(),
-      responseTime: Date.now() - (node.startTime || Date.now())
+      responseTime: Date.now() - startTime
     };
     
+    setReponse(result)
     updateNodeStatus(node, setNodes, 'success', `HTTP ${method} completed (${response.status})`);
     await errorHandler('success', setIsExecuting, setNodes, node, result);
     logExecution('HTTP', node, result);
@@ -848,25 +865,31 @@ const httpHandler = async (node, setNodes, setIsExecuting, data) => {
     
     if (error.name === 'AbortError') {
       errorResult = {
-        success: true,
+        success: false,
         error: 'Request timeout',
         message: `Request timed out after ${node.function.timeout || 30000}ms`,
         code: 'TIMEOUT',
         timestamp: new Date().toISOString()
       };
-
-      
-    } else if (error.message.includes('Failed to fetch')) {
+    } else if (error.message.includes('Failed to fetch') || error.message.includes('NetworkError')) {
       errorResult = {
-        success: true,
+        success: false,
         error: 'Network error',
-        message: 'Failed to connect to the server',
+        message: 'Failed to connect to the server. Check CORS settings and URL validity.',
         code: 'NETWORK_ERROR',
+        timestamp: new Date().toISOString()
+      };
+    } else if (error.message.includes('CORS')) {
+      errorResult = {
+        success: false,
+        error: 'CORS error',
+        message: 'Cross-Origin Request Blocked. Server needs to allow CORS.',
+        code: 'CORS_ERROR',
         timestamp: new Date().toISOString()
       };
     } else {
       errorResult = {
-        success: true,
+        success: false,
         error: error.message,
         message: error.toString(),
         code: 'HTTP_ERROR',
@@ -877,6 +900,7 @@ const httpHandler = async (node, setNodes, setIsExecuting, data) => {
     updateNodeStatus(node, setNodes, 'error', `HTTP request failed: ${error.message}`);
     await errorHandler('error', setIsExecuting, setNodes, node, errorResult);
     logExecution('HTTP', node, errorResult);
+    setReponse(errorResult)
     return errorResult;
   }
 };

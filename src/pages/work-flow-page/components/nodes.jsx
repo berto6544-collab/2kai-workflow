@@ -22,7 +22,7 @@ const NodeComponent = ({ node, onNodeClick, onStartConnection, onDelete,handleNo
       x: adjustedX - node.x,
       y: adjustedY - node.y,
     });
-
+    setIsHolding(true)
     setIsDragging(true);
    
   };
@@ -45,6 +45,7 @@ const NodeComponent = ({ node, onNodeClick, onStartConnection, onDelete,handleNo
  const handleMouseUp = useCallback(() => {
     setIsDragging(false);
     setIsHolding(false);
+
   }, []);
   
 const onKeyDownNode = (e) =>{
@@ -126,7 +127,7 @@ if (e.key === "Delete" && selectedNode) {
               <Trash2 className="w-5 h-5" />
             </button>
             <button
-              className="node-action cursor-pointer text-gray-400 hover:text-yellow-400 transition-colors"
+              className="node-action cursor-pointer text-gray-400 hover:text-green-400 transition-colors"
               
               onClick={(e) => {
                 e.stopPropagation();
@@ -142,7 +143,7 @@ if (e.key === "Delete" && selectedNode) {
           </div>:null}
       <div
 
-        className={`absolute bg-[#131313] h-full w-full border-2 rounded-xl select-none ${getStatusColor(node.status)} ${isDragging ? 'opacity-75' : ''} ${isHolding ? 'cursor-grabbing' : 'cursor-grab'}`}
+        className={`absolute bg-[#131313] h-full w-full border-2 rounded-xl select-none ${getStatusColor(node.status)} ${isDragging ? 'opacity-75' : ''} ${isHolding ? 'cursor-grab' : 'cursor-grab'}`}
         
       >
         <div className="flex items-center justify-between p-4 h-full">

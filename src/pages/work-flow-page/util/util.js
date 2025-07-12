@@ -28,9 +28,6 @@ import {
     loopHandler
 } from "./handlers";
 
-
-
-
 const NodeFunction = async (node,setNodes,setIsExecuting,data)=>{
 var data = null
 
