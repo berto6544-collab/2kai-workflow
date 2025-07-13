@@ -170,7 +170,7 @@ const N8NWorkflowPlatform = () => {
   };
 
   const deleteNode = async(nodeId,node) => {
-    executionOrder.filter(n => n.id !== nodeId);
+    executionOrder = await executionOrder.filter(n => n.id !== nodeId);
     setNodes(prev => prev.filter(n => n.id !== nodeId));
     setConnections(prev => prev.filter(c => c.from !== nodeId && c.to !== nodeId));
     //executionOrder = await getExecutionOrder();
@@ -420,7 +420,7 @@ const executeWorkflow = async () => {
     
     const node = executionOrder[i];
    
-
+    
 
     setNodes(prev =>
       prev.map(n => (n.id === node.id ? { ...n, status: 'running' } : n))
@@ -434,6 +434,7 @@ const executeWorkflow = async () => {
    
     // Store the result in execution context
     executionContext[node.id] = data;
+    
    
     // Check if node failed
     const isNodeFailure = data?.success === false || data?.completed == false || data == null || data === "failed";
@@ -529,8 +530,12 @@ const stopExecution = () => {
   shouldStop = true;
   executionOrder = [];
   setIsExecuting(false);
-  return shouldStop;
+  return shouldStop = true;
 };
+
+const handleStoppedExecution = () =>{
+  return shouldStop
+}
 
 const executeWorkflowFromNode = async (selectedNodeId = null) => {
    shouldStop = false;
@@ -570,7 +575,9 @@ const executeWorkflowFromNode = async (selectedNodeId = null) => {
       prev.map(n => (n.id === node.id ? { ...n, status: 'running' } : n))
     );
 
-    if (shouldStop) {
+    const isStopped = await handleStoppedExecution();
+
+    if (isStopped) {
    // i = executionOrder.length; // or globalLoops = maxGlobalLoops;
     break; // optional, but cleaner
    }
@@ -653,8 +660,7 @@ const executeWorkflowFromNode = async (selectedNodeId = null) => {
 
 
 
-
-  const deleteConnection = (connectionToDelete) => {
+  const deleteConnection = async(connectionToDelete) => {
   // Remove the connection from the connections array
   setConnections(prev => prev.filter(conn => 
     !(conn.fromX === connectionToDelete.fromX && 
@@ -663,6 +669,7 @@ const executeWorkflowFromNode = async (selectedNodeId = null) => {
       conn.toY === connectionToDelete.toY)
   ));
   
+  executionOrder = await executionOrder.filter(item => item.id !== connectionToDelete.to);
   //Updating node statuses back to 'idle' if they were part of execution chain
  setNodes(prev => prev.map(node => ({
     ...node,
@@ -698,7 +705,7 @@ const executeWorkflowFromNode = async (selectedNodeId = null) => {
     const handleDeleteClick = (e) => {
         e.stopPropagation();
         if (onDelete) {
-            onDelete(connection);
+          onDelete(connection);
         }
     };
    
@@ -874,9 +881,9 @@ const executeWorkflowFromNode = async (selectedNodeId = null) => {
                     {nodeTypes.filter(node => node.category === category).map((nodeType) => {
                       const Icon = nodeType.icon;
                       return (
-                        <div className={`w-full flex items-center gap-2 group`}>
+                        <div key={nodeType.id} className={`w-full flex items-center gap-2 group`}>
                         <div
-                          key={nodeType.id}
+                          
                           className="flex w-full items-center space-x-3 p-3  rounded-lg  cursor-grab hover:bg-[#2a2a2a] transition-all duration-200 hover:border-yellow-500"
                           draggable
                           onDragStart={() => handleNodeDragStart(nodeType)}
@@ -1052,9 +1059,9 @@ const executeWorkflowFromNode = async (selectedNodeId = null) => {
               transformOrigin: 'top left'
             }}
           >
-            {nodes.map((node) => (
+            {nodes.length > 0 &&  nodes.map((node) => (
               <NodeComponent
-                key={node.id}
+                //key={node.id}
                 node={node}
                 canvasRef={canvasRef}
                 canvasOffset={canvasOffset}
