@@ -10,7 +10,7 @@ import { nodeTypes,getNodeConfig } from './util/nodeArrays';
 import { sleep } from './util/utilResponse';
 
 
-const N8NWorkflowPlatform = () => {
+const Main= () => {
   const [nodes, setNodes] = useState([]);
   const [connections, setConnections] = useState([]);
   const [selectedNode, setSelectedNode] = useState(null);
@@ -476,8 +476,6 @@ if (conditionalNextIndex !== null) {
 
 
 
-// Usage in your main execution loop:
-//if (node.type === 'loop') {
   const loopResult = await handleLoopNode(node, data, connections, executionOrder, setNodes);
   
   if (loopResult.shouldLoop) {
@@ -485,8 +483,7 @@ if (conditionalNextIndex !== null) {
     i = loopResult.targetIndex;
     continue;
   }else{
-  // If not looping, continue with normal execution flow
-//}else{
+
 
 
   
@@ -614,7 +611,7 @@ const executeWorkflowFromNode = async (selectedNodeId = null) => {
       continue;
     }
    
- // Usage in your main execution loop:
+
 //if (node.type === 'loop') {
   const loopResult = await handleLoopNode(node, data, connections, executionOrder, setNodes);
   
@@ -661,7 +658,7 @@ const executeWorkflowFromNode = async (selectedNodeId = null) => {
 
 
   const deleteConnection = async(connectionToDelete) => {
-  // Remove the connection from the connections array
+  // Removing the connection from the connections array
   setConnections(prev => prev.filter(conn => 
     !(conn.fromX === connectionToDelete.fromX && 
       conn.fromY === connectionToDelete.fromY && 
@@ -698,7 +695,7 @@ const executeWorkflowFromNode = async (selectedNodeId = null) => {
                     ${(connection.toX - 50) * scale + canvasOffset.x} ${connection.toY * scale + canvasOffset.y}
                     ${connection.toX * scale + canvasOffset.x} ${connection.toY * scale + canvasOffset.y}`;
    
-    // Calculate the midpoint of the connection line
+    // Calculating the midpoint of the connection line
     const midX = ((connection.fromX + connection.toX) / 2) * scale + canvasOffset.x;
     const midY = ((connection.fromY + connection.toY) / 2) * scale + canvasOffset.y;
     
@@ -717,8 +714,11 @@ const executeWorkflowFromNode = async (selectedNodeId = null) => {
                 stroke="#4b5563"
                 strokeWidth={2 * scale}
                 fill="none"
-                className="pointer-events-none"
+                
+                className={`pointer-events-none ${connection?'animated-path':null}`}
+                
             />
+           
            
             <circle
                 cx={connection.toX * scale + canvasOffset.x}
@@ -761,14 +761,14 @@ const executeWorkflowFromNode = async (selectedNodeId = null) => {
 
 
 
- // Handle save button click
+ // Handling save button click
   const handleSave = async(e) => {
     e.preventDefault();
     if (!selectedNode) return;
     
     setIsSaving(true)
     
-    // Update the nodes array with the new configuration
+    // Updating the nodes array with the new configuration
     setNodes(prevNodes => 
       prevNodes.map(node => 
         node.id === selectedNode.id 
@@ -1164,4 +1164,4 @@ const executeWorkflowFromNode = async (selectedNodeId = null) => {
 
 
 
-export default N8NWorkflowPlatform;
+export default Main;

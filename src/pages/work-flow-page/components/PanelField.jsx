@@ -33,6 +33,74 @@ const  RenderFormField = ({field,formData,handleFieldChange,selectedNode}) => {
           </div>
         );
 
+      case 'keyValueList':
+  return (
+    <div key={name} className="py-2 px-2 flex flex-col items-start gap-2 w-full">
+      <label className="block text-sm font-medium text-gray-100">{label}</label>
+      {Array.isArray(value) && value.map((pair, index) => (
+        <div key={index} className="flex w-full gap-2 items-center border-b border-b-1 border-gray-800 pb-4 ">
+        <div className="flex flex-col w-full gap-2 items-start">
+          <div className="flex w-full gap-2 justify-between">
+          <p>key</p>
+          
+          <button
+            type="button"
+            onClick={() => {
+              const updated = value.filter((_, i) => i !== index);
+              field.arrayvalue = updated;
+              handleFieldChange(name, updated);
+            }}
+            className="text-red-400 hover:text-red-600 px-2"
+          >
+            ✕
+          </button>
+          </div>
+          <input
+            type="text"
+            placeholder={field.keyPlaceholder || 'Key'}
+            value={pair.key || ''}
+            onChange={(e) => {
+              const updated = [...value];
+              updated[index] = { ...updated[index], key: e.target.value };
+              handleFieldChange(name, updated);
+              field.arrayvalue = updated;
+            }}
+            className="flex-1 px-3 w-full py-2 border border-gray-800 bg-[#242121] text-white rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+           <p>value</p>
+          <input
+            type={field.valueType || 'text'}
+            placeholder={field.valuePlaceholder || 'Value'}
+            value={pair.value || ''}
+            onChange={(e) => {
+              const updated = [...value];
+              updated[index] = { ...updated[index], value: e.target.value};
+              handleFieldChange(name, updated);
+              field.arrayvalue = updated;
+            }}
+            className="flex-1 px-3 py-2 w-full border border-gray-800 bg-[#242121] text-white rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+          
+          </div>
+        
+        
+        </div>
+      ))}
+      <button
+        type="button"
+        onClick={() => {
+          const updated =  [...value, { key: '', value: '' }]
+          handleFieldChange(name, updated);
+          field.arrayvalue = updated;
+          console.log(field)
+        }}
+        className="mt-2 text-sm text-blue-400 hover:underline"
+      >
+        + Add {field.itemLabel || 'Key-Value Pair'}
+      </button>
+    </div>
+  );
+
         case 'selectBody':
         return (
           <div key={name} className="py-2 px-2 flex flex-col items-start gap-2 w-full">

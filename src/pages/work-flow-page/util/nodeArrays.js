@@ -2,7 +2,8 @@
   Play, Database, Mail, Globe, Settings, GitBranch, Code, FileText, Zap, Clock, User, Download, Upload,
   MessageSquare, Camera, Mic, Layers,Brain,
   ThumbsUp, BarChart3, Cloud, GitPullRequest, Cpu, ShieldCheck,
-  RotateCcw
+  RotateCcw,
+  FileJson
 } from 'lucide-react';
  
  export const nodeTypes = [
@@ -70,6 +71,15 @@
         color: 'bg-yellow-500 text-white', 
         category: 'Core',
         description: 'Iterate over arrays or repeat actions multiple times'
+    },
+
+    {
+        id: 'json', 
+        name: 'JSON', 
+        icon: FileJson, 
+        color: 'bg-yellow-500 text-white', 
+        category: 'Core',
+        description: 'Define and pass data with customizable JSON fields for static or dynamic content between nodes.'
     },
     
     // Logic
@@ -279,6 +289,9 @@
         
         { name: 'timeout', label: 'Timeout (seconds)', type: 'number',value:"", placeholder: '30' }
       ],
+      json: [
+      {name: 'jsonFields', label: 'JSON Fields', type: 'keyValueList',arrayvalue:[], itemLabel: 'Key-Value Pair', keyPlaceholder: 'Enter key', valuePlaceholder: 'Enter value', valueType: 'text',required: false}
+            ],
       email: [
         { name: 'to', label: 'To', type: 'text',value:"", placeholder: 'recipient@example.com', required: true },
         { name: 'cc', label: 'CC', type: 'text',value:"", placeholder: 'cc@example.com' },
