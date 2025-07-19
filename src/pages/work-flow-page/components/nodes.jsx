@@ -89,7 +89,7 @@ if (e.key === "Delete" && selectedNode) {
 
     return (
       <div 
-      className={`absolute ${selectedNode?.id == node?.id ?"start-node":''}`}
+      className={`absolute draggable ${selectedNode?.id == node?.id ?"start-node":''}`}
         ref={nodeRef}
         key={node.id}
         tabIndex={0}

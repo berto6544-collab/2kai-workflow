@@ -4,3 +4,6 @@ circle{
 }
 
 
+.draggable{
+    touch-action: none;
+}

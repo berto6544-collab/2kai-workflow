@@ -881,7 +881,7 @@ const executeWorkflowFromNode = async (selectedNodeId = null) => {
                     {nodeTypes.filter(node => node.category === category).map((nodeType) => {
                       const Icon = nodeType.icon;
                       return (
-                        <div key={nodeType.id} className={`w-full flex items-center gap-2 group`}>
+                        <div key={nodeType.id} className={`w-full flex items-center gap-2 group draggable`}>
                         <div
                           
                           className="flex w-full items-center space-x-3 p-3  rounded-lg  cursor-grab hover:bg-[#2a2a2a] transition-all duration-200 hover:border-yellow-500"
@@ -917,7 +917,7 @@ const executeWorkflowFromNode = async (selectedNodeId = null) => {
       </div>
 
       {/* Canvas */}
-      <div className="flex-1 relative overflow-hidden">
+      <div className="flex-1 draggable relative overflow-hidden">
         {/* Header */}
       <div className="sticky top-0 left-0 right-0 h-16 bg-black flex items-center justify-between px-6 z-20">
         <div className="flex items-center space-x-4">
@@ -1015,7 +1015,7 @@ const executeWorkflowFromNode = async (selectedNodeId = null) => {
 
         <div
           ref={canvasRef}
-          className="w-full h-full relative bg-black cursor-grab"
+          className="w-full h-full draggable relative bg-black cursor-grab"
           style={{
             backgroundImage: `
               linear-gradient(to right, rgb(17, 17, 17) 1px, transparent 1px),
