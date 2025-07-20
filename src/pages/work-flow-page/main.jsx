@@ -822,7 +822,7 @@ const executeWorkflowFromNode = async (selectedNodeId = null) => {
         }
         
         // Calculate offset based on connection index and overlapping connections
-        const layer = Math.floor(connectionIndex / 2);
+        const layer = Math.floor(connectionIndex / 5);
         const side = connectionIndex % 2 === 0 ? 1 : -1; // Alternate sides
         
         return {
