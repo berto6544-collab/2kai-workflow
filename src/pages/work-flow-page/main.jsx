@@ -782,65 +782,521 @@ const executeWorkflowFromNode = async (selectedNodeId = null) => {
 
   
 
-  const ConnectionLine = ({ connection, onDelete }) => {
-    const path = `M ${connection.fromX * scale + canvasOffset.x} ${connection.fromY * scale + canvasOffset.y}
-                  C ${(connection.fromX + 50) * scale + canvasOffset.x} ${connection.fromY * scale + canvasOffset.y}
-                    ${(connection.toX - 50) * scale + canvasOffset.x} ${connection.toY * scale + canvasOffset.y}
-                    ${connection.toX * scale + canvasOffset.x} ${connection.toY * scale + canvasOffset.y}`;
-   
-    // Calculating the midpoint of the connection line
-    const midX = ((connection.fromX + connection.toX) / 2) * scale + canvasOffset.x;
-    const midY = ((connection.fromY + connection.toY) / 2) * scale + canvasOffset.y;
+ const ConnectionLine = ({ 
+    connection, 
+    onDelete, 
+    nodeWidth = 0, 
+    nodeHeight = 0,
+    nodePadding = 0,
+    scale = 1,
+    canvasOffset = { x: 0, y: 0 },
+    allConnections = [], // Pass all connections to detect overlaps
+    connectionIndex = 0   // Index of current connection in the array
+}) => {
+    
+    const LINE_SPACING = 30; // Minimum spacing between parallel lines
+    const CURVE_OFFSET = 15; // Offset for curved routing
+    
+    const calculatePath = () => {
+        // Apply padding to connection points
+        const { startX, startY, endX, endY } = calculatePaddedPoints(
+            connection.fromX, 
+            connection.fromY, 
+            connection.toX, 
+            connection.toY,
+            nodePadding
+        );
+        
+        // Calculate overlap offset for this connection
+        const overlapOffset = calculateOverlapOffset(startX, startY, endX, endY);
+        
+        return createDynamicPathWithOffset(startX, startY, endX, endY, overlapOffset);
+    };
+    
+    const calculateOverlapOffset = (startX, startY, endX, endY) => {
+        // Find connections that might overlap with current one
+        const overlappingConnections = findOverlappingConnections(startX, startY, endX, endY);
+        
+        if (overlappingConnections.length === 0) {
+            return { offsetX: 0, offsetY: 0, layer: 0 };
+        }
+        
+        // Calculate offset based on connection index and overlapping connections
+        const layer = Math.floor(connectionIndex / 2);
+        const side = connectionIndex % 2 === 0 ? 1 : -1; // Alternate sides
+        
+        return {
+            offsetX: side * LINE_SPACING * (layer + 1),
+            offsetY: side * LINE_SPACING * (layer + 1) * 0.5,
+            layer: layer
+        };
+    };
+    
+    const findOverlappingConnections = (startX, startY, endX, endY) => {
+        const OVERLAP_THRESHOLD = 30;
+        const overlapping = [];
+        
+        allConnections.forEach((otherConnection, index) => {
+            if (index === connectionIndex || !otherConnection) return;
+            
+            // Check if connections are roughly parallel and close
+            const otherStartX = otherConnection.fromX;
+            const otherStartY = otherConnection.fromY;
+            const otherEndX = otherConnection.toX;
+            const otherEndY = otherConnection.toY;
+            
+            // Calculate if paths might intersect or run parallel
+            const thisAngle = Math.atan2(endY - startY, endX - startX);
+            const otherAngle = Math.atan2(otherEndY - otherStartY, otherEndX - otherStartX);
+            const angleDiff = Math.abs(thisAngle - otherAngle);
+            
+            // If angles are similar (parallel lines) or intersecting
+            const isParallel = angleDiff < 0.2 || Math.abs(angleDiff - Math.PI) < 0.2;
+            const isIntersecting = Math.abs(angleDiff - Math.PI/2) < 0.5;
+            
+            if (isParallel || isIntersecting) {
+                // Check distance between paths
+                const distance = calculatePathDistance(
+                    startX, startY, endX, endY,
+                    otherStartX, otherStartY, otherEndX, otherEndY
+                );
+                
+                if (distance < OVERLAP_THRESHOLD) {
+                    overlapping.push({ connection: otherConnection, index, distance });
+                }
+            }
+        });
+        
+        return overlapping;
+    };
+    
+    const calculatePathDistance = (x1, y1, x2, y2, x3, y3, x4, y4) => {
+        // Calculate minimum distance between two line segments
+        const midX1 = (x1 + x2) / 2;
+        const midY1 = (y1 + y2) / 2;
+        const midX2 = (x3 + x4) / 2;
+        const midY2 = (y3 + y4) / 2;
+        
+        return Math.sqrt(Math.pow(midX2 - midX1, 2) + Math.pow(midY2 - midY1, 2));
+    };
+    
+    const calculatePaddedPoints = (fromX, fromY, toX, toY, padding) => {
+        // Enhanced padding calculation with connection point optimization
+        const dx = toX - fromX;
+        const dy = toY - fromY;
+        const distance = Math.sqrt(dx * dx + dy * dy);
+        
+        if (distance < padding * 2) {
+            return { startX: fromX, startY: fromY, endX: toX, endY: toY };
+        }
+        
+        // Calculate optimal connection points on node edges
+        const { startX, startY } = calculateOptimalConnectionPoint(fromX, fromY, toX, toY, padding, true);
+        const { endX, endY } = calculateOptimalConnectionPoint(toX, toY, fromX, fromY, padding, false);
+        
+        return { startX, startY, endX, endY };
+    };
+    
+    const calculateOptimalConnectionPoint = (centerX, centerY, targetX, targetY, padding, isStart) => {
+        const dx = targetX - centerX;
+        const dy = targetY - centerY;
+        const angle = Math.atan2(dy, dx);
+        
+        // Calculate connection point on the edge of the node
+        const halfWidth = nodeWidth / 2;
+        const halfHeight = nodeHeight / 2;
+        
+        let connectionX, connectionY;
+        
+        // Determine which edge to connect to based on angle
+        const absAngle = Math.abs(angle);
+        const isHorizontal = absAngle < Math.PI / 4 || absAngle > 3 * Math.PI / 4;
+        
+        if (isHorizontal) {
+            // Connect to left or right edge
+            connectionX = centerX + (angle < Math.PI / 2 && angle > -Math.PI / 2 ? halfWidth + padding : -halfWidth - padding);
+            connectionY = centerY + Math.tan(angle) * (connectionX - centerX);
+            
+            // Clamp to node height
+            connectionY = Math.max(centerY - halfHeight, Math.min(centerY + halfHeight, connectionY));
+        } else {
+            // Connect to top or bottom edge
+            connectionY = centerY + (angle > 0 ? halfHeight + padding : -halfHeight - padding);
+            connectionX = centerX + (connectionY - centerY) / Math.tan(angle);
+            
+            // Clamp to node width
+            connectionX = Math.max(centerX - halfWidth, Math.min(centerX + halfWidth, connectionX));
+        }
+        
+        return { 
+            startX: connectionX, 
+            startY: connectionY, 
+            endX: connectionX, 
+            endY: connectionY 
+        };
+    };
+    
+    const createDynamicPathWithOffset = (startX, startY, endX, endY, offset) => {
+        const dx = endX - startX;
+        const dy = endY - startY;
+        
+        // Apply offset to avoid overlaps
+        const offsetStartX = startX + offset.offsetX * 0.3;
+        const offsetStartY = startY + offset.offsetY * 0.3;
+        const offsetEndX = endX - offset.offsetX * 0.3;
+        const offsetEndY = endY - offset.offsetY * 0.3;
+        
+        // If nodes are very close, use direct connection with offset
+        if (Math.abs(dx) < 40 && Math.abs(dy) < 40) {
+            return {
+                path: createSVGPath([
+                    { x: offsetStartX, y: offsetStartY },
+                    { x: offsetEndX, y: offsetEndY }
+                ]),
+                points: [
+                    { x: offsetStartX, y: offsetStartY },
+                    { x: offsetEndX, y: offsetEndY }
+                ]
+            };
+        }
+        
+        // Determine routing strategy
+        const strategy = determineRoutingStrategy(dx, dy, offset.layer);
+        
+        switch (strategy) {
+            case 'horizontal-first':
+                return createHorizontalFirstPathWithOffset(offsetStartX, offsetStartY, offsetEndX, offsetEndY, dx, dy, offset);
+            case 'vertical-first':
+                return createVerticalFirstPathWithOffset(offsetStartX, offsetStartY, offsetEndX, offsetEndY, dx, dy, offset);
+            case 'curved':
+                return createCurvedPath(offsetStartX, offsetStartY, offsetEndX, offsetEndY, offset);
+            case 'stepped':
+                return createSteppedPathWithOffset(offsetStartX, offsetStartY, offsetEndX, offsetEndY, dx, dy, offset);
+            default:
+                return createHorizontalFirstPathWithOffset(offsetStartX, offsetStartY, offsetEndX, offsetEndY, dx, dy, offset);
+        }
+    };
+    
+    const determineRoutingStrategy = (dx, dy, layer) => {
+        const absDx = Math.abs(dx);
+        const absDy = Math.abs(dy);
+        
+        // Use curved paths for higher layers to create more separation
+        if (layer > 1) {
+            return 'curved';
+        }
+        
+        // For overlapping connections, alternate between strategies
+        if (layer > 0) {
+            return connectionIndex % 2 === 0 ? 'horizontal-first' : 'vertical-first';
+        }
+        
+        // Standard routing logic
+        if (absDx > absDy * 2) return 'horizontal-first';
+        if (absDy > absDx) return 'vertical-first';
+        if (dx > 0 && absDy < 150) return 'horizontal-first';
+        if (absDx < 150 && absDy > 50) return 'vertical-first';
+        if (dx < -50) return 'stepped';
+        
+        return 'horizontal-first';
+    };
+    
+    const createHorizontalFirstPathWithOffset = (startX, startY, endX, endY, dx, dy, offset) => {
+        const points = [{ x: startX, y: startY }];
+        
+        // Calculate turn point with offset
+        let horizontalDist = Math.max(80, Math.abs(dx) * 0.6) + Math.abs(offset.offsetX);
+        if (dx < 0) horizontalDist = 100 + Math.abs(offset.offsetX);
+        
+        let turnX = startX + (dx >= 0 ? horizontalDist : -horizontalDist);
+        let turnY = startY + offset.offsetY * 0.5; // Slight vertical offset
+        
+        if (Math.abs(dy) < 30) {
+            // Mostly horizontal with slight curve for separation
+            const midY = (startY + endY) / 2 + offset.offsetY;
+            points.push({ x: turnX, y: turnY });
+            points.push({ x: turnX, y: midY });
+            points.push({ x: endX, y: midY });
+        } else {
+            // Standard L-shape with offset
+            points.push({ x: turnX, y: turnY });
+            points.push({ x: turnX, y: endY });
+        }
+        
+        points.push({ x: endX, y: endY });
+        
+        return {
+            path: createSVGPath(points),
+            points: points
+        };
+    };
+    
+    const createVerticalFirstPathWithOffset = (startX, startY, endX, endY, dx, dy, offset) => {
+        const points = [{ x: startX, y: startY }];
+        
+        // Calculate turn point with offset
+        let verticalDist = Math.max(80, Math.abs(dy) * 0.6) + Math.abs(offset.offsetY);
+        let turnY = startY + (dy >= 0 ? verticalDist : -verticalDist);
+        let turnX = startX + offset.offsetX * 0.5; // Slight horizontal offset
+        
+        if (Math.abs(dx) < 30) {
+            // Mostly vertical with slight curve for separation
+            const midX = (startX + endX) / 2 + offset.offsetX;
+            points.push({ x: turnX, y: turnY });
+            points.push({ x: midX, y: turnY });
+            points.push({ x: midX, y: endY });
+        } else {
+            // Standard inverted L-shape with offset
+            points.push({ x: turnX, y: turnY });
+            points.push({ x: endX, y: turnY });
+        }
+        
+        points.push({ x: endX, y: endY });
+        
+        return {
+            path: createSVGPath(points),
+            points: points
+        };
+    };
+    
+    const createCurvedPath = (startX, startY, endX, endY, offset) => {
+        // Create a curved path for better visual separation
+        const midX = (startX + endX) / 2 + offset.offsetX;
+        const midY = (startY + endY) / 2 + offset.offsetY;
+        
+        // Add control points for smoother curves
+        const controlX1 = startX + (midX - startX) * 0.5;
+        const controlY1 = startY + offset.offsetY * 0.8;
+        const controlX2 = endX - (endX - midX) * 0.5;
+        const controlY2 = endY - offset.offsetY * 0.8;
+        
+        const points = [
+            { x: startX, y: startY },
+            { x: controlX1, y: controlY1 },
+            { x: midX, y: midY },
+            { x: controlX2, y: controlY2 },
+            { x: endX, y: endY }
+        ];
+        
+        return {
+            path: createSVGPathWithBezier(points),
+            points: points
+        };
+    };
+    
+    const createSteppedPathWithOffset = (startX, startY, endX, endY, dx, dy, offset) => {
+        const points = [{ x: startX, y: startY }];
+        
+        // Enhanced stepped path with offset for avoiding overlaps
+        const stepOut = 120 + Math.abs(offset.offsetX);
+        const firstStepX = startX + stepOut;
+        const firstStepY = startY + offset.offsetY * 0.3;
+        
+        points.push({ x: firstStepX, y: firstStepY });
+        
+        // Add intermediate points for better routing around obstacles
+        if (Math.abs(dy) > 40) {
+            const intermediateY = endY + offset.offsetY * 0.5;
+            points.push({ x: firstStepX, y: intermediateY });
+        }
+        
+        // Final approach to target
+        const finalStepX = endX - stepOut;
+        points.push({ x: finalStepX, y: endY });
+        points.push({ x: endX, y: endY });
+        
+        return {
+            path: createSVGPath(points),
+            points: points
+        };
+    };
+    
+    const createSVGPath = (points) => {
+        if (!points || points.length < 2) return '';
+        
+        let pathString = `M ${points[0].x * scale + canvasOffset.x} ${points[0].y * scale + canvasOffset.y}`;
+        
+        for (let i = 1; i < points.length; i++) {
+            const x = points[i].x * scale + canvasOffset.x;
+            const y = points[i].y * scale + canvasOffset.y;
+            pathString += ` L ${x} ${y}`;
+        }
+        
+        return pathString;
+    };
+    
+    const createSVGPathWithBezier = (points) => {
+        if (!points || points.length < 2) return '';
+        
+        let pathString = `M ${points[0].x * scale + canvasOffset.x} ${points[0].y * scale + canvasOffset.y}`;
+        
+        // Create smooth curve using quadratic bezier curves
+        for (let i = 1; i < points.length - 1; i += 2) {
+            const cpX = points[i].x * scale + canvasOffset.x;
+            const cpY = points[i].y * scale + canvasOffset.y;
+            const endX = points[i + 1].x * scale + canvasOffset.x;
+            const endY = points[i + 1].y * scale + canvasOffset.y;
+            
+            pathString += ` Q ${cpX} ${cpY} ${endX} ${endY}`;
+        }
+        
+        // Add final point if odd number of points
+        if (points.length % 2 === 0) {
+            const lastPoint = points[points.length - 1];
+            const x = lastPoint.x * scale + canvasOffset.x;
+            const y = lastPoint.y * scale + canvasOffset.y;
+            pathString += ` L ${x} ${y}`;
+        }
+        
+        return pathString;
+    };
+    
+    // Calculate the midpoint along the actual path
+    const calculatePathMidpoint = (points) => {
+        if (!points || points.length < 2) {
+            return { x: 0, y: 0 };
+        }
+        
+        // Calculate total path length
+        let totalLength = 0;
+        const segments = [];
+        
+        for (let i = 1; i < points.length; i++) {
+            const segmentLength = Math.sqrt(
+                Math.pow(points[i].x - points[i-1].x, 2) + 
+                Math.pow(points[i].y - points[i-1].y, 2)
+            );
+            segments.push({
+                start: points[i-1],
+                end: points[i],
+                length: segmentLength
+            });
+            totalLength += segmentLength;
+        }
+        
+        // Find the segment that contains the midpoint
+        const halfLength = totalLength / 2;
+        let accumulatedLength = 0;
+        
+        for (const segment of segments) {
+            if (accumulatedLength + segment.length >= halfLength) {
+                const segmentProgress = (halfLength - accumulatedLength) / segment.length;
+                const midX = segment.start.x + (segment.end.x - segment.start.x) * segmentProgress;
+                const midY = segment.start.y + (segment.end.y - segment.start.y) * segmentProgress;
+                
+                return {
+                    x: midX * scale + canvasOffset.x,
+                    y: midY * scale + canvasOffset.y
+                };
+            }
+            accumulatedLength += segment.length;
+        }
+        
+        // Fallback
+        const midIndex = Math.floor(points.length / 2);
+        return {
+            x: points[midIndex].x * scale + canvasOffset.x,
+            y: points[midIndex].y * scale + canvasOffset.y
+        };
+    };
+    
+    // Validate connection object
+    if (!connection || 
+        typeof connection.fromX !== 'number' || 
+        typeof connection.fromY !== 'number' || 
+        typeof connection.toX !== 'number' || 
+        typeof connection.toY !== 'number') {
+        console.warn('Invalid connection object:', connection);
+        return null;
+    }
+    
+    const pathResult = calculatePath();
+    if (!pathResult || !pathResult.path) {
+        console.warn('Failed to calculate path for connection:', connection);
+        return null;
+    }
+    
+    const pathMidpoint = calculatePathMidpoint(pathResult.points);
     
     const handleDeleteClick = (e) => {
         e.stopPropagation();
         if (onDelete) {
-          onDelete(connection);
+            onDelete(connection);
         }
     };
-   
+    
+    const connectionId = connection.id || `${connection.fromX}-${connection.fromY}-${connection.toX}-${connection.toY}-${connectionIndex}`;
+    
     return (
-        <g >
-          
+        <g className="connection-line-group">
+            <defs>
+                <marker
+                    id={`arrowhead-${connectionId}`}
+                    markerWidth="10"
+                    markerHeight="7"
+                    refX="9"
+                    refY="3.5"
+                    orient="auto"
+                    markerUnits="strokeWidth"
+                >
+                    <polygon
+                        points="0 0, 10 3.5, 0 7"
+                        fill="#6B7280"
+                        stroke="#6B7280"
+                        strokeWidth="0.5"
+                    />
+                </marker>
+            </defs>
+            
+            {/* Main connection line with arrow */}
             <path
-                d={path}
-                stroke="#4b5563"
+                d={pathResult.path}
+                stroke="#9CA3AF"
                 strokeWidth={2 * scale}
                 fill="none"
-                
-                className={`pointer-events-none ${connection?'animated-path':null}`}
-                
-            />
-           
-           
-            <circle
-                cx={connection.toX * scale + canvasOffset.x}
-                cy={connection.toY * scale + canvasOffset.y}
-                r={4 * scale}
-                fill="#3b82f6"
-                className="pointer-events-none"
+                markerEnd={`url(#arrowhead-${connectionId})`}
+                className="connection-path"
+                style={{
+                    strokeLinecap: "round",
+                    strokeLinejoin: "round"
+                }}
             />
             
-            {/* Delete button background circle */}
-            
-            <circle
-                cx={midX}
-                cy={midY}
-                r={12 * scale}
-                fill="#ef4444"
-                stroke="#4b5563"
-                className="cursor-pointer hover:fill-red-600 transition-colors"
-                style={{ pointerEvents: "all" }}
-                onClick={(e)=>{handleDeleteClick(e)}}
+            {/* Invisible thicker line for easier hovering */}
+            <path
+                d={pathResult.path}
+                stroke="transparent"
+                strokeWidth={12 * scale}
+                fill="none"
+                className="connection-hover-area"
+                style={{ cursor: "pointer" }}
             />
             
-            {/* Trash/bin icon */}
-            <g transform={`translate(${midX - 7 * scale}, ${midY - 10 * scale}) scale(${scale})`}>
-                <path
-                    d="M3 6v10c0 .55.45 1 1 1h8c.55 0 1-.45 1-1V6H3zm2.5 9c-.28 0-.5-.22-.5-.5v-6c0-.28.22-.5.5-.5s.5.22.5.5v6c0 .28-.22.5-.5.5zm2 0c-.28 0-.5-.22-.5-.5v-6c0-.28.22-.5.5-.5s.5.22.5.5v6c0 .28-.22.5-.5.5zm2 0c-.28 0-.5-.22-.5-.5v-6c0-.28.22-.5.5-.5s.5.22.5.5v6c0 .28-.22.5-.5.5zM10.5 4L10 3.5C9.89 3.39 9.78 3.33 9.67 3.29L9.33 3.29C9.22 3.33 9.11 3.39 9 3.5L8.5 4H5.5C5.22 4 5 4.22 5 4.5S5.22 5 5.5 5H12.5C12.78 5 13 4.78 13 4.5S12.78 4 12.5 4H10.5z"
-                    fill="white"
-                    style={{ pointerEvents: "none" }}
+            {/* Delete button */}
+            <g className="delete-button pointer-events-none group-hover:opacity-100 transition-opacity duration-200">
+                <circle
+                    cx={pathMidpoint.x}
+                    cy={pathMidpoint.y}
+                    r={10 * scale}
+                    fill="#EF4444"
+                    stroke="#FFFFFF"
+                    strokeWidth={2 * scale}
+                    onClick={handleDeleteClick}
+                    className="cursor-pointer hover:fill-red-600 transition-colors shadow-lg"
+                    style={{ pointerEvents: 'auto' }}
                 />
+                <text
+                    x={pathMidpoint.x}
+                    y={pathMidpoint.y + 1}
+                    textAnchor="middle"
+                    fontSize={12 * scale}
+                    fill="white"
+                    className="cursor-pointer select-none font-bold"
+                    style={{ pointerEvents: 'auto' }}
+                    onClick={handleDeleteClick}
+                >
+                    ×
+                </text>
             </g>
         </g>
     );
@@ -1127,7 +1583,7 @@ const executeWorkflowFromNode = async (selectedNodeId = null) => {
           onMouseMove={handleCanvasMouseMove}
           onMouseDown={handleCanvasMouseDown}
           onMouseUp={handleCanvasMouseUp}
-          //onWheel={handleWheel}
+          onWheel={handleWheel}
           onTouchMove={handleCanvasTouchMove}
           onTouchStart={handleCanvasTouchDown}
           onTouchEnd={handleCanvasMouseUp}
@@ -1135,8 +1591,8 @@ const executeWorkflowFromNode = async (selectedNodeId = null) => {
 
         >
           <svg className="absolute inset-0 pointer-events-none" style={{ zIndex: 1,width:window.innerWidth + 50 * scale ,height:window.innerHeight + 50 * scale}}>
-            {connections.map((connection) => (
-              <ConnectionLine key={connection.id} onDelete={deleteConnection} connection={connection} />
+            {connections.map((connection,index) => (
+              <ConnectionLine key={connection.id} connectionIndex={index} onDelete={deleteConnection} allConnections={connections}  canvasOffset={canvasOffset} connection={connection} />
             ))}
             
             {isConnecting && connectionStart && (
