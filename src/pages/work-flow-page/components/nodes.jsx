@@ -9,44 +9,80 @@ const NodeComponent = ({ node, onNodeClick, onStartConnection, onDelete,handleNo
     const Icon = node.icon;
     const nodeRef = React.useRef(null);
 
-   // Mouse down: initiate drag
-  const handleMouseDown = (e) => {
-    e.stopPropagation();
-    if (e.target.classList.contains('node-action')) return;
+const getCoordinates = (e) => {
+  if (e.touches && e.touches.length > 0) {
+    return { clientX: e.touches[0].clientX, clientY: e.touches[0].clientY };
+  }
+  return { clientX: e.clientX, clientY: e.clientY };
+};
 
-    const rect = canvasRef.current.getBoundingClientRect();
-    const adjustedX = (e.clientX - rect.left - canvasOffset.x) / scale;
-    const adjustedY = (e.clientY - rect.top - canvasOffset.y) / scale;
+   // Unified start handler for both mouse and touch
+const handleStart = (e) => {
+  e.stopPropagation();
+  
+  if (e.target.classList.contains('node-action')) return;
+  
+  const coords = getCoordinates(e);
+  const rect = canvasRef.current.getBoundingClientRect();
+  const adjustedX = (coords.clientX - rect.left - canvasOffset.x) / scale;
+  const adjustedY = (coords.clientY - rect.top - canvasOffset.y) / scale;
+  
+  setDragOffset({
+    x: adjustedX - node.x,
+    y: adjustedY - node.y,
+  });
+  setIsHolding(true);
+  setIsDragging(true);
+};
 
-    setDragOffset({
-      x: adjustedX - node.x,
-      y: adjustedY - node.y,
-    });
-    setIsHolding(true)
-    setIsDragging(true);
-   
-  };
+// Mouse down handler
+const handleMouseDown = handleStart;
 
-  // Mouse move: update node position
-  const handleMouseMove = useCallback((e) => {
-    if (!isDragging) return;
+// Touch start handler
+const handleTouchStart = (e) => {
+  e.preventDefault(); // Prevent scrolling
+  handleStart(e);
+};
 
-    const rect = canvasRef.current.getBoundingClientRect();
-    const adjustedX = (e.clientX - rect.left - canvasOffset.x) / scale;
-    const adjustedY = (e.clientY - rect.top - canvasOffset.y) / scale;
+// Unified move handler for both mouse and touch
+const handleMove = useCallback((e) => {
+  if (!isDragging) return;
+  
+  const coords = getCoordinates(e);
+  const rect = canvasRef.current.getBoundingClientRect();
+  const adjustedX = (coords.clientX - rect.left - canvasOffset.x) / scale;
+  const adjustedY = (coords.clientY - rect.top - canvasOffset.y) / scale;
+  const x = adjustedX - dragOffset.x;
+  const y = adjustedY - dragOffset.y;
+  
+  updateNodePosition(node.id, x, y);
+}, [isDragging, dragOffset, node.id, canvasOffset, scale, updateNodePosition]);
 
-    const x = adjustedX - dragOffset.x;
-    const y = adjustedY - dragOffset.y;
-     //handleNodeDrag(node.id, { x: x, y: y });
-     updateNodePosition(node.id, x, y);
-  }, [isDragging, dragOffset, node.id, canvasOffset, scale, updateNodePosition]);
+// Mouse move handler
+const handleMouseMove = handleMove;
 
-  // Mouse up: stop dragging
- const handleMouseUp = useCallback(() => {
-    setIsDragging(false);
-    setIsHolding(false);
+// Touch move handler
+const handleTouchMove = useCallback((e) => {
+  e.preventDefault(); // Prevent scrolling
+  handleMove(e);
+}, [handleMove]);
 
-  }, []);
+// Unified end handler
+const handleEnd = useCallback(() => {
+  setIsDragging(false);
+  setIsHolding(false);
+}, []);
+
+// Mouse up handler
+const handleMouseUp = handleEnd;
+
+// Touch end handler
+const handleTouchEnd = useCallback((e) => {
+  e.preventDefault(); // Prevent default touch behavior
+  handleEnd();
+}, [handleEnd]);
+
+
   
 const onKeyDownNode = (e) =>{
 if (e.key === "Delete" && selectedNode) {
@@ -62,6 +98,7 @@ if (e.key === "Delete" && selectedNode) {
     if (isDragging) {
       window.addEventListener('mousemove', handleMouseMove);
       window.addEventListener('mouseup', handleMouseUp);
+  
     } else {
      // window.removeEventListener('mousemove', handleMouseMove);
      // window.removeEventListener('mouseup', handleMouseUp);
@@ -70,6 +107,7 @@ if (e.key === "Delete" && selectedNode) {
     return () => {
       window.removeEventListener('mousemove', handleMouseMove);
       window.removeEventListener('mouseup', handleMouseUp);
+      
     };
   }, [isDragging, handleMouseMove, handleMouseUp]);
 
@@ -94,7 +132,12 @@ if (e.key === "Delete" && selectedNode) {
         key={node.id}
         tabIndex={0}
         onMouseDown={handleMouseDown}
-        
+        onMouseMove={handleMouseMove}
+        onMouseUp={handleMouseUp}
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
+
         style={{ 
           left: node.x, 
           top:  node.y, 

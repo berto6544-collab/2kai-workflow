@@ -1,7 +1,8 @@
 import React, { useState, useRef, useCallback } from 'react';
 import { 
   Play,Save, Search, MoreHorizontal, ChevronRight, RotateCcw,Trash,
-  Pause
+  Pause,
+  Plus
 } from 'lucide-react';
 import NodeFunction  from './util/util';
 import NodeComponent from './components/nodes';
@@ -64,10 +65,42 @@ const Main= () => {
     }
   }, [isPanning, panStart]);
 
+
+  
+
   const handleCanvasMouseDown = useCallback((e) => {
     if (e.target === canvasRef.current) {
       setIsPanning(true);
       setPanStart({ x: e.clientX, y: e.clientY });
+      setSelectedNode(null);
+    }
+  }, []);
+
+  const handleCanvasTouchMove = useCallback((e) => {
+    e.preventDefault();
+     if (!e.touches || e.touches.length === 0) return;
+    const touch = e.touches[0];
+    const rect = canvasRef.current.getBoundingClientRect();
+    const x = touch.clientX - rect.left;
+    const y = touch.clientY - rect.top;
+    setMousePosition({ x, y });
+
+    if (isPanning) {
+      const deltaX = touch.clientX - panStart.x;
+      const deltaY = touch.clientY - panStart.y;
+      setCanvasOffset(prev => ({
+        x: prev.x + deltaX,
+        y: prev.y + deltaY
+      }));
+      setPanStart({ x: touch.clientX, y: touch.clientY });
+    }
+  }, [isPanning, panStart]);
+
+ const handleCanvasTouchDown = useCallback((e) => {
+    if (e.target === canvasRef.current && e.touches && e.touches.length > 0) {
+      const touch = e.touches[0];
+      setIsPanning(true);
+      setPanStart({ x: touch.clientX, y: touch.clientY });
       setSelectedNode(null);
     }
   }, []);
@@ -139,6 +172,66 @@ const Main= () => {
   }
     setDraggedNode(null);
   };
+
+
+  const handleClickToCanvas = async(e,nodeType) => {
+    e.preventDefault();
+   
+
+    
+    const randomString = Math.random().toString(36).substring(2, 10);
+    if(nodeType.id == "webhook"){
+     
+
+      const newNode = {
+      id: `node-${nodeIdCounter.current++}`,
+      type: nodeType.id,
+      name: nodeType.name,
+      icon: nodeType.icon,
+      color: nodeType.color,
+      path:randomString,
+      x:20,
+      y:20,
+      config: getNodeConfig(nodeType.id,randomString),
+      description:nodeType.description,
+      status: 'idle'
+    };
+  
+
+    console.log(newNode)
+    
+    setNodes(prev => [...prev, newNode]);
+    
+    const reg = await fetch("https://2kai-agent.com/app/register-webhook", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ path: randomString }),
+    }).then(res=>res.json())
+    console.log(reg);
+
+    }else{
+    const newNode = {
+      id: `node-${nodeIdCounter.current++}`,
+      type: nodeType.id,
+      name: nodeType.name,
+      icon: nodeType.icon,
+      color: nodeType.color,
+      path:null,
+      x:20,
+      y:20,
+      config: getNodeConfig(nodeType.id,randomString),
+      description:nodeType.description,
+      status: 'idle'
+    };
+  
+
+    console.log(newNode)
+    
+    setNodes(prev => [...prev, newNode]);
+  }
+    setDraggedNode(null);
+  };
+
 
   const handleNodeClick = (node) => {
     if (isConnecting) {
@@ -887,6 +980,8 @@ const executeWorkflowFromNode = async (selectedNodeId = null) => {
                           className="flex w-full items-center space-x-3 p-3  rounded-lg  cursor-grab hover:bg-[#2a2a2a] transition-all duration-200 hover:border-yellow-500"
                           draggable
                           onDragStart={() => handleNodeDragStart(nodeType)}
+                          onTouchStart={(e) => handleTouchStart(e, nodeType)}
+                          
                           
                         >
                           <div className={`p-2 rounded-lg bg-gradient-to-r ${nodeType.color} shadow-lg group-hover:scale-110 transition-transform`}>
@@ -897,11 +992,12 @@ const executeWorkflowFromNode = async (selectedNodeId = null) => {
                             <div className="text-xs text-gray-400">{nodeType.description}</div>
                           </div>
                         
-                        {/*<button className={'text-gray-50 hover:text-yellow-500'} onClick={(e)=>{
+                        {<button className={'text-gray-50 hover:text-yellow-500'} onClick={(e)=>{
                           e.stopPropagation()
-                          handleNodeDragStart(nodeType)
+                          handleClickToCanvas(e,nodeType)
 
-                        }}><Plus /></button>*/}
+                        }}><Plus /></button>}
+                        
                         </div>
                       
 
@@ -1031,7 +1127,11 @@ const executeWorkflowFromNode = async (selectedNodeId = null) => {
           onMouseMove={handleCanvasMouseMove}
           onMouseDown={handleCanvasMouseDown}
           onMouseUp={handleCanvasMouseUp}
-          onWheel={handleWheel}
+          //onWheel={handleWheel}
+          onTouchMove={handleCanvasTouchMove}
+          onTouchStart={handleCanvasTouchDown}
+          onTouchEnd={handleCanvasMouseUp}
+          
 
         >
           <svg className="absolute inset-0 pointer-events-none" style={{ zIndex: 1,width:window.innerWidth + 50 * scale ,height:window.innerHeight + 50 * scale}}>
