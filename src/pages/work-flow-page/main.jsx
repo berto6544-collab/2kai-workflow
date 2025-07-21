@@ -881,7 +881,7 @@ const executeWorkflowFromNode = async (selectedNodeId = null) => {
     };
     
     const calculatePaddedPoints = (fromX, fromY, toX, toY, padding) => {
-        // Enhanced padding calculation with connection point optimization
+        //padding calculation with connection point optimization
         const dx = toX - fromX;
         const dy = toY - fromY;
         const distance = Math.sqrt(dx * dx + dy * dy);
@@ -1005,15 +1005,15 @@ const executeWorkflowFromNode = async (selectedNodeId = null) => {
         const points = [{ x: startX, y: startY }];
         
         // Calculate turn point with offset
-        let horizontalDist = Math.max(80, Math.abs(dx) * 0.6) + Math.abs(offset.offsetX);
+        let horizontalDist = Math.max(80, Math.abs(dx) * 0.2) + Math.abs(offset.offsetX);
         if (dx < 0) horizontalDist = 100 + Math.abs(offset.offsetX);
         
-        let turnX = startX + (dx >= 0 ? horizontalDist : -horizontalDist);
+        let turnX = startX + (dx >= 0 ? horizontalDist : -horizontalDist * 10);
         let turnY = startY + offset.offsetY * 0.5; // Slight vertical offset
         
         if (Math.abs(dy) < 30) {
             // Mostly horizontal with slight curve for separation
-            const midY = (startY + endY) / 2 + offset.offsetY;
+            const midY = (startY + endY) / 2 +  4;
             points.push({ x: turnX, y: turnY });
             points.push({ x: turnX, y: midY });
             points.push({ x: endX, y: midY });
@@ -1040,7 +1040,7 @@ const executeWorkflowFromNode = async (selectedNodeId = null) => {
         let turnX = startX + offset.offsetX * 0.5; // Slight horizontal offset
         
         if (Math.abs(dx) < 30) {
-            // Mostly vertical with slight curve for separation
+            //vertical with slight curve for separation
             const midX = (startX + endX) / 2 + offset.offsetX;
             points.push({ x: turnX, y: turnY });
             points.push({ x: midX, y: turnY });
@@ -1229,24 +1229,7 @@ const executeWorkflowFromNode = async (selectedNodeId = null) => {
     
     return (
         <g className="connection-line-group">
-            <defs>
-                <marker
-                    id={`arrowhead-${connectionId}`}
-                    markerWidth="10"
-                    markerHeight="7"
-                    refX="9"
-                    refY="3.5"
-                    orient="auto"
-                    markerUnits="strokeWidth"
-                >
-                    <polygon
-                        points="0 0, 10 3.5, 0 7"
-                        fill="#6B7280"
-                        stroke="#6B7280"
-                        strokeWidth="0.5"
-                    />
-                </marker>
-            </defs>
+            
             
             {/* Main connection line with arrow */}
             <path
@@ -1256,10 +1239,7 @@ const executeWorkflowFromNode = async (selectedNodeId = null) => {
                 fill="none"
                 markerEnd={`url(#arrowhead-${connectionId})`}
                 className="connection-path"
-                style={{
-                    strokeLinecap: "round",
-                    strokeLinejoin: "round"
-                }}
+               
             />
             
             {/* Invisible thicker line for easier hovering */}
