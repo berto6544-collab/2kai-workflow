@@ -140,11 +140,12 @@ if (e.key === "Delete" && selectedNode) {
 
         style={{ 
           left: node.x, 
-          top:  node.y, 
+          top:  node.y,
           width: 250, 
           height: 100,
           transform: `scale(${scale})`,
-          transformOrigin: 'top left'
+          transformOrigin: 'top left',
+          zIndex:5
         }}
         onKeyDown={onKeyDownNode}
         onClick={(e)=>{

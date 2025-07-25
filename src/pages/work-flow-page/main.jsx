@@ -130,6 +130,8 @@ const Main= () => {
       name: draggedNode.name,
       icon: draggedNode.icon,
       color: draggedNode.color,
+      input:draggedNode.input,
+      output:draggedNode.output,
       path:randomString,
       x,
       y,
@@ -157,6 +159,8 @@ const Main= () => {
       name: draggedNode.name,
       icon: draggedNode.icon,
       color: draggedNode.color,
+      input:draggedNode.input,
+      output:draggedNode.output,
       path:null,
       x,
       y,
@@ -189,6 +193,8 @@ const Main= () => {
       name: nodeType.name,
       icon: nodeType.icon,
       color: nodeType.color,
+      input:nodeType.input,
+      output:nodeType.output,
       path:randomString,
       x:20,
       y:20,
@@ -216,6 +222,8 @@ const Main= () => {
       name: nodeType.name,
       icon: nodeType.icon,
       color: nodeType.color,
+      input:nodeType.input,
+      output:nodeType.output,
       path:null,
       x:20,
       y:20,
@@ -1228,7 +1236,7 @@ const executeWorkflowFromNode = async (selectedNodeId = null) => {
     const connectionId = connection.id || `${connection.fromX}-${connection.fromY}-${connection.toX}-${connection.toY}-${connectionIndex}`;
     
     return (
-        <g className="connection-line-group">
+        <g className="connection-line-group" style={{zIndex:1,position:'absolute'}}>
             
             
             {/* Main connection line with arrow */}
@@ -1239,7 +1247,7 @@ const executeWorkflowFromNode = async (selectedNodeId = null) => {
                 fill="none"
                 markerEnd={`url(#arrowhead-${connectionId})`}
                 className="connection-path"
-               
+               style={{zIndex:1,position:'absolute',pointerEvents: 'none'}}
             />
             
             {/* Invisible thicker line for easier hovering */}
@@ -1570,7 +1578,7 @@ const executeWorkflowFromNode = async (selectedNodeId = null) => {
           
 
         >
-          <svg className="absolute inset-0 pointer-events-none" style={{ zIndex: 1,width:window.innerWidth + 50 * scale ,height:window.innerHeight + 50 * scale}}>
+          <svg className="absolute inset-0 pointer-events-none" style={{ zIndex: 0,position:'absolute',width:window.innerWidth + 50 * scale ,height:window.innerHeight + 50 * scale}}>
             {connections.map((connection,index) => (
               <ConnectionLine key={connection.id} connectionIndex={index} onDelete={deleteConnection} allConnections={connections}  canvasOffset={canvasOffset} connection={connection} />
             ))}
