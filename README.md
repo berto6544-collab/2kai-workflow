@@ -70,7 +70,9 @@ Update `nodeArrays.js` to define a new `nodeTypes` entry:
   name: 'Display Name',   // Human-readable name
   icon: IconComponent,    // React icon component
   color: 'tailwind-classes', // Tailwind CSS classes for styling
-  category: 'Category'    // Grouping category
+  category: 'Category',    // Grouping category
+  output: ['response','error'], // output response and error handling 
+  input:['data'],          // input data 
 }
 ```
 
@@ -119,6 +121,8 @@ Node types are defined in `src/util/nodeArrays.js` with the following structure:
   icon: IconComponent,    // React icon component
   color: 'tailwind-classes', // Tailwind CSS classes for styling
   category: 'Category'    // Grouping category
+  output: ['response','error'] // output response and error handling 
+  input:['data']          // input data 
 }
 ```
 
