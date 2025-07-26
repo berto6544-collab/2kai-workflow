@@ -19,6 +19,7 @@ const Main= () => {
   const [isConnecting, setIsConnecting] = useState(false);
   const [connectionStart, setConnectionStart] = useState(null);
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
+  const [prompt, setPrompt] = useState('');
   const [workflowName, setWorkflowName] = useState('My Workflow');
   const [panelStatus, setPanelStatus] = useState('parameter');
   const [isExecuting, setIsExecuting] = useState(false);
@@ -1407,6 +1408,40 @@ const executeWorkflowFromNode = async (selectedNodeId = null) => {
                 />
               </div>
             </div>
+
+            <div className={`flex flex-col items-end gap-2 w-full p-4`}>
+              <div className="mb-4 w-full">
+                <label className="block text-sm font-medium text-gray-50 mb-2">
+                  Describe node
+                </label>
+                <textarea
+                  value={prompt}
+                  onChange={(e) => setPrompt(e.target.value)}
+                  placeholder="Example: Create a social media platform for photographers with image sharing, real-time comments, user profiles, payment integration for premium features, AI-powered image enhancement, email notifications, and analytics dashboard for content creators..."
+                  className="w-full h-40 px-4 py-3 border-1 border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 resize-none text-sm leading-relaxed"
+                />
+              </div>
+                <button onClick={()=>{
+                  if(!prompt.trim())return;
+                   fetch('http://localhost:5000/workflow/generateFlow',{
+                   method:'POST',
+                   headers:{
+                   'Content-Type': 'application/json'
+                    },
+                   body: JSON.stringify({"prompt":prompt}),
+     
+                  }).then(res=>res.json())
+                  .then(response=>{
+
+                  setNodes(response.nodes.map(node => ({...node, config: getNodeConfig(node.type) }))
+);
+                  setConnections(response.connections)
+                  console.log(response)
+                  });
+
+                }} className={`p-2 bg-gray-700 cursor-pointer hover:bg-gray-600 rounded-md w-full`}>Generate Nodes</button>
+
+              </div>
             
             <div className="p-4 space-y-4">
               {categories.map((category) => (

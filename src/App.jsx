@@ -13,7 +13,7 @@ import Cookies from 'js-cookie';
 
 
 const WorkFlow = React.lazy(() => import("./pages/work-flow-page/main"));
-//const DesignWorkFlow = React.lazy(() => import("./pages/design-workflow-page/design-work-flow-page"));
+const DesignWorkFlow = React.lazy(() => import("./pages/design-workflow-page/design-work-flow-page"));
 const apiUrl = import.meta.env.VITE_API_URL;
 
 
@@ -111,11 +111,11 @@ const Routess = ({ UserData }) => {
     <Routes>
       
      
-       {/*<Route
+       {<Route
         path={"/design"}
         exact
         element={<DesignWorkFlow userData={UserData.length > 0 ? UserData : []} />}
-      />*/}
+      />}
      
       <Route
         path={"/"}
