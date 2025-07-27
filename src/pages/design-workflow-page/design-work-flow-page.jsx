@@ -1,33 +1,19 @@
 import React, { useState, useRef, useCallback, useEffect } from 'react';
 import {  
   Settings, 
-  Database, 
-  Shield, 
-  Mail, 
   FileCode, 
-  Bell,
-  CreditCard,
-  BarChart3,
   Zap,
   Trash2,
   Copy,
-  Eye,
   Download,
-  Server,
-  Smartphone,
-  Cloud,
-  Lock,
   Workflow,
   GitBranch,
-  Monitor,
-  Layers,
   CheckCircle,
   Clock,
-  Cpu,
-  HardDrive,
-  Network,
   X
 } from 'lucide-react';
+
+import * as Icons from "lucide-react";
 
 const AppBuilderWorkflow = () => {
   const [nodes, setNodes] = useState([]);
@@ -64,7 +50,7 @@ const AppBuilderWorkflow = () => {
   const nodeTypes = {
     // Frontend Nodes
     frontend: {
-      icon: Monitor,
+      icon: 'Monitor',
       color: 'bg-blue-500',
       name: 'Frontend App',
       category: 'Frontend',
@@ -74,7 +60,7 @@ const AppBuilderWorkflow = () => {
       ports: { input: 2, output: 3 }
     },
     mobile: {
-      icon: Smartphone,
+      icon: 'Smartphone',
       color: 'bg-purple-500',
       name: 'Mobile App',
       category: 'Frontend',
@@ -86,7 +72,7 @@ const AppBuilderWorkflow = () => {
     
     // Backend Nodes
     api: {
-      icon: Server,
+      icon: 'Server',
       color: 'bg-green-500',
       name: 'API Gateway',
       category: 'Backend',
@@ -96,7 +82,7 @@ const AppBuilderWorkflow = () => {
       ports: { input: 2, output: 3 }
     },
     microservice: {
-      icon: Layers,
+      icon: 'Layers',
       color: 'bg-indigo-500',
       name: 'Microservice',
       category: 'Backend',
@@ -108,7 +94,7 @@ const AppBuilderWorkflow = () => {
     
     // Database Nodes
     database: {
-      icon: Database,
+      icon: 'Database',
       color: 'bg-orange-500',
       name: 'Database',
       category: 'Data',
@@ -118,7 +104,7 @@ const AppBuilderWorkflow = () => {
       ports: { input: 2, output: 3 }
     },
     cache: {
-      icon: Cpu,
+      icon: 'Cpu',
       color: 'bg-red-500',
       name: 'Cache Layer',
       category: 'Data',
@@ -130,7 +116,7 @@ const AppBuilderWorkflow = () => {
     
     // Auth & Security
     auth: {
-      icon: Shield,
+      icon: 'Shield',
       color: 'bg-emerald-500',
       name: 'Authentication',
       category: 'Security',
@@ -140,7 +126,7 @@ const AppBuilderWorkflow = () => {
       ports: { input: 2, output: 3 }
     },
     security: {
-      icon: Lock,
+      icon: 'Lock',
       color: 'bg-gray-700',
       name: 'Security Layer',
       category: 'Security',
@@ -152,7 +138,7 @@ const AppBuilderWorkflow = () => {
     
     // External Services
     payment: {
-      icon: CreditCard,
+      icon: 'CreditCard',
       color: 'bg-yellow-500',
       name: 'Payment Gateway',
       category: 'External',
@@ -162,7 +148,7 @@ const AppBuilderWorkflow = () => {
       ports: { input: 2, output: 3 }
     },
     email: {
-      icon: Mail,
+      icon: 'Mail',
       color: 'bg-pink-500',
       name: 'Email Service',
       category: 'External',
@@ -172,7 +158,7 @@ const AppBuilderWorkflow = () => {
       ports: { input: 3, output: 2 }
     },
     storage: {
-      icon: HardDrive,
+      icon: "HardDrive",
       color: 'bg-teal-500',
       name: 'File Storage',
       category: 'External',
@@ -184,7 +170,7 @@ const AppBuilderWorkflow = () => {
     
     // Analytics & Monitoring
     analytics: {
-      icon: BarChart3,
+      icon: "BarChart3",
       color: 'bg-violet-500',
       name: 'Analytics Engine',
       category: 'Analytics',
@@ -194,7 +180,7 @@ const AppBuilderWorkflow = () => {
       ports: { input: 3, output: 3 }
     },
     monitoring: {
-      icon: Eye,
+      icon: "Eye",
       color: 'bg-cyan-500',
       name: 'Monitoring',
       category: 'Analytics',
@@ -206,7 +192,7 @@ const AppBuilderWorkflow = () => {
     
     // Communication
     notifications: {
-      icon: Bell,
+      icon: "Bell",
       color: 'bg-amber-500',
       name: 'Notification Hub',
       category: 'Communication',
@@ -216,7 +202,7 @@ const AppBuilderWorkflow = () => {
       ports: { input: 2, output: 2 }
     },
     websocket: {
-      icon: Network,
+      icon: "Network",
       color: 'bg-lime-500',
       name: 'Real-time Engine',
       category: 'Communication',
@@ -228,7 +214,7 @@ const AppBuilderWorkflow = () => {
     
     // AI & ML
     ai_service: {
-      icon: Zap,
+      icon: "Zap",
       color: 'bg-fuchsia-500',
       name: 'AI Service',
       category: 'AI/ML',
@@ -240,7 +226,7 @@ const AppBuilderWorkflow = () => {
     
     // DevOps
     deployment: {
-      icon: Cloud,
+      icon: "Cloud",
       color: 'bg-slate-500',
       name: 'Deployment',
       category: 'DevOps',
@@ -850,7 +836,7 @@ const AppBuilderWorkflow = () => {
         }
         return prev + 1;
       });
-    }, 300);
+    }, 1000);
     
     fetch('http://localhost:5000/workflow/generate',{
       method:'POST',
@@ -1087,7 +1073,7 @@ The system follows a microservices architecture with the following layers:
 
   const Node = ({ node }) => {
     const nodeType = nodeTypes[node.type];
-    //const IconComponent = nodeType.icon;
+    const IconComponent = Icons[nodeType.icon] || null;
     const isSelected = selectedNode?.id === node.id;
     const isHovered = hoveredNode === node.id;
     const isConnectionSource = sourceNode === node.id;
@@ -1114,10 +1100,10 @@ The system follows a microservices architecture with the following layers:
         }}
       >
         {/* Node Header */}
-        <div className={` text-black p-3 rounded-t-xl flex items-center justify-between`}>
+        <div style={{flexWrap:'wrap'}} className={` text-black p-3 rounded-t-xl flex items-center justify-between`}>
           <div className="flex items-center space-x-2">
-            {/*<IconComponent className="h-5 w-5" />*/}
-            <span className="font-medium text-sm truncate">{node.data.label}</span>
+            {IconComponent?<IconComponent className="h-5 w-5" />:null}
+            <span style={{textWrap:'wrap'}} className="font-medium text-sm truncate">{node.data.label}</span>
           </div>
           <div className="text-xs opacity-75">{nodeType.category}</div>
         </div>
@@ -1174,7 +1160,7 @@ The system follows a microservices architecture with the following layers:
               {Object.entries(nodeTypes)
                 .filter(([, config]) => config.category === category)
                 .map(([type, config]) => {
-                  //const IconComponent = config.icon;
+                  const IconComponent = Icons[config.icon];
                   return (
                     <div
                       key={type}
@@ -1197,7 +1183,7 @@ The system follows a microservices architecture with the following layers:
                       }}
                     >
                       <div className={` p-2 rounded-lg flex-shrink-0`}>
-                        {/*<IconComponent className="h-4 w-4 text-white" />*/}
+                        {<IconComponent className="h-4 w-4 text-black" />}
                       </div>
                       <div className="min-w-0 flex-1">
                         <p className="text-sm font-medium text-gray-900 truncate">{config.name}</p>
@@ -1690,7 +1676,7 @@ The system follows a microservices architecture with the following layers:
                 <label className="block text-sm font-medium text-gray-700 mb-3">
                   Quick Examples (Click to use)
                 </label>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
                   {[
                     {
                       title: "E-commerce Platform",
@@ -1712,10 +1698,10 @@ The system follows a microservices architecture with the following layers:
                     <button
                       key={index}
                       onClick={() => setPrompt(example.description)}
-                      className="text-left p-3 border border-gray-200 rounded-lg hover:border-indigo-300 hover:bg-indigo-50 transition-colors"
+                      className="text-left p-2 border border-gray-200 rounded-full hover:border-indigo-300 hover:bg-indigo-50 transition-colors text-center justify-center flex items-center"
                     >
-                      <div className="font-medium text-sm text-gray-900 mb-1">{example.title}</div>
-                      <div className="text-xs text-gray-600 line-clamp-2">{example.description}</div>
+                      <div className="font-medium text-sm text-gray-900">{example.title}</div>
+                      
                     </button>
                   ))}
                 </div>
@@ -1773,7 +1759,7 @@ The system follows a microservices architecture with the following layers:
                   <button
                     onClick={handleGenerateApp}
                     disabled={!prompt.trim() || prompt.length < 20}
-                    className="bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 disabled:from-gray-300 disabled:to-gray-400 text-white px-8 py-2 rounded-lg font-medium flex items-center space-x-2 transition-all transform hover:scale-105 disabled:transform-none disabled:cursor-not-allowed"
+                    className="bg-black hover:bg-gray-700 disabled:bg-gray-300 disabled:bg-gray-400 text-white px-8 py-2 rounded-lg font-medium flex items-center space-x-2 transition-all transform hover:scale-105 disabled:transform-none disabled:cursor-not-allowed"
                   >
                     <Zap className="h-4 w-4" />
                     <span>Generate Architecture</span>

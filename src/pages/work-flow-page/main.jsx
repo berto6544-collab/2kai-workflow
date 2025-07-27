@@ -1409,7 +1409,7 @@ const executeWorkflowFromNode = async (selectedNodeId = null) => {
                     activeTab === 'AI' ? 'bg-yellow-600 text-black' : 'text-gray-400 hover:text-white hover:bg-gray-700'
                   }`}
                 >
-                  AI
+                  Create with AI
                 </button>
               </div>
 
@@ -1430,7 +1430,7 @@ const executeWorkflowFromNode = async (selectedNodeId = null) => {
                 <textarea
                   value={prompt}
                   onChange={(e) => setPrompt(e.target.value)}
-                  placeholder="Describe Your Automation And AI Will Generate It. Example: When a new file is uploaded to Google Drive, convert the file to PDF format, then send a notification message to a Slack channel."
+                  placeholder="Describe your automation and AI will build it. Example: When a new file is uploaded to Google Drive, convert the file to PDF format, then send a notification message to a Slack channel."
                   className="w-full h-40 px-4 py-3 border-1 border-gray-700 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 resize-none text-sm leading-relaxed"
                 />
               </div>
