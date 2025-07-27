@@ -2,6 +2,8 @@ import React, { useState, useRef, useCallback } from 'react';
 import { 
   Play,Save, Search, MoreHorizontal, ChevronRight, RotateCcw,Trash,
   Pause,
+  Clock,
+  CheckCircle,
   Plus
 } from 'lucide-react';
 import NodeFunction  from './util/util';
@@ -24,8 +26,19 @@ const Main= () => {
   const [panelStatus, setPanelStatus] = useState('parameter');
   const [isExecuting, setIsExecuting] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [generationSteps, setGenerationSteps] = useState([
+    'Analyzing requirements...',
+      'Designing architecture...',
+      'Creating core services...',
+      'Setting up data layer...',
+      'Configuring security...',
+      'Adding integrations...',
+      'Optimizing connections...',
+      'Finalizing workflow...'
+  ]);
+  const [currentStep, setCurrentStep] = useState(0);
   const [activeTab, setActiveTab] = useState('nodes');
-  //const[executionOrder,setExecutionOrder] = useState([]);
+  const[isGenerating,setIsGenerating] = useState(false);
   const [selectedNodeType, setSelectedNodeType] = useState('trigger');
   const [formData, setFormData] = useState({});
   const [isSavingg,setIsSaving] = useState(false);
@@ -1380,7 +1393,7 @@ const executeWorkflowFromNode = async (selectedNodeId = null) => {
         
         {!sidebarCollapsed && (
           <>
-            <div className="p-4 border-b border-gray-700">
+            <div className={`p-4 ${activeTab == "AI"?'pb-0':''} border-b border-gray-700`}>
               <div className="flex space-x-2 mb-4">
                 <button
                   onClick={() => setActiveTab('nodes')}
@@ -1391,38 +1404,50 @@ const executeWorkflowFromNode = async (selectedNodeId = null) => {
                   Nodes
                 </button>
                 <button
-                  onClick={() => setActiveTab('credentials')}
+                  onClick={() => setActiveTab('AI')}
                   className={`flex-1 py-2 px-3 rounded-lg text-sm font-medium transition-colors ${
-                    activeTab === 'credentials' ? 'bg-yellow-600 text-black' : 'text-gray-400 hover:text-white hover:bg-gray-700'
+                    activeTab === 'AI' ? 'bg-yellow-600 text-black' : 'text-gray-400 hover:text-white hover:bg-gray-700'
                   }`}
                 >
-                  Credentials
+                  AI
                 </button>
               </div>
-              <div className="relative">
+
+              {activeTab === 'nodes'?<div className="relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
                 <input
                   type="text"
                   placeholder="Search nodes..."
                   className="w-full pl-10 pr-4 py-2 bg-[#242121] border-1 border-gray-800 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 />
-              </div>
+              </div>:null}
             </div>
 
-            <div className={`flex flex-col items-end gap-2 w-full p-4`}>
+
+              {activeTab == "AI"?<div className={`flex flex-col items-end gap-2 w-full p-3`}>
               <div className="mb-4 w-full">
-                <label className="block text-sm font-medium text-gray-50 mb-2">
-                  Describe node
-                </label>
+               
                 <textarea
                   value={prompt}
                   onChange={(e) => setPrompt(e.target.value)}
-                  placeholder="Example: Create a social media platform for photographers with image sharing, real-time comments, user profiles, payment integration for premium features, AI-powered image enhancement, email notifications, and analytics dashboard for content creators..."
-                  className="w-full h-40 px-4 py-3 border-1 border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 resize-none text-sm leading-relaxed"
+                  placeholder="Describe Your Automation And AI Will Generate It. Example: When a new file is uploaded to Google Drive, convert the file to PDF format, then send a notification message to a Slack channel."
+                  className="w-full h-40 px-4 py-3 border-1 border-gray-700 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 resize-none text-sm leading-relaxed"
                 />
               </div>
                 <button onClick={()=>{
                   if(!prompt.trim())return;
+                  setIsGenerating(true)
+
+                   const stepInterval = setInterval(() => {
+                    setCurrentStep(prev => {
+                     if (prev >= generationSteps.length - 1) {
+                    clearInterval(stepInterval);
+                     return prev;
+                      }
+                      return prev + 1;
+                    });
+                       }, 300);
+                       
                    fetch('http://localhost:5000/workflow/generateFlow',{
                    method:'POST',
                    headers:{
@@ -1432,18 +1457,25 @@ const executeWorkflowFromNode = async (selectedNodeId = null) => {
      
                   }).then(res=>res.json())
                   .then(response=>{
-
-                  setNodes(response.nodes.map(node => ({...node, config: getNodeConfig(node.type) }))
-);
+                  setIsGenerating(false)  
+                  clearInterval(stepInterval);  
+                    if(response.error) return console.log(response.error);
+                  
+                    
+                   
+                  setPrompt("");
+                  setNodes(response.nodes)
                   setConnections(response.connections)
-                  console.log(response)
+
+                  
                   });
 
-                }} className={`p-2 bg-gray-700 cursor-pointer hover:bg-gray-600 rounded-md w-full`}>Generate Nodes</button>
+                }} className={`p-2 bg-gray-700 cursor-pointer hover:bg-gray-600 rounded-md w-full flex items-center justify-center text-center`}>{isGenerating?<span className={`flex items-center justify-center text-center gap-2`}><Clock className="h-4 w-4 animate-spin text-indigo-500" /> Generating...</span>:'Generate Nodes'}</button>
 
-              </div>
+              </div>:null}
             
-            <div className="p-4 space-y-4">
+            
+            {activeTab === 'nodes'?<div className="p-4 space-y-4">
               {categories.map((category) => (
                 <div key={category}>
                   <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">
@@ -1486,7 +1518,7 @@ const executeWorkflowFromNode = async (selectedNodeId = null) => {
                   </div>
                 </div>
               ))}
-            </div>
+            </div>:null}
           </>
         )}
       </div>
@@ -1581,6 +1613,42 @@ const executeWorkflowFromNode = async (selectedNodeId = null) => {
             </button>
           </div>
         </div>
+
+            
+            {isGenerating && (
+            <div className="absolute inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50">
+              <div className="bg-[#131313] p-8 rounded-xl shadow-2xl max-w-md w-full mx-4">
+                <div className="text-center">
+                  <div className="flex items-center justify-center mb-4">
+                    <div className="animate-spin rounded-full h-12 w-12 border-4 border-indigo-500 border-t-transparent"></div>
+                  </div>
+                  <h3 className="text-lg font-semibold text-gray-50 mb-2">Building Your Automation</h3>
+                  <p className="text-gray-100 mb-6">AI is analyzing your requirements...</p>
+                  
+                  <div className="space-y-2">
+                    {generationSteps.map((step, index) => (
+                      <div
+                        key={index}
+                        className={`flex items-center space-x-3 p-2 rounded-lg transition-all ${
+                          index <= currentStep ? 'bg-green-50 text-green-700' : 'bg-gray-900 text-gray-100'
+                        }`}
+                      >
+                        {index < currentStep ? (
+                          <CheckCircle className="h-4 w-4 text-green-500" />
+                        ) : index === currentStep ? (
+                          <Clock className="h-4 w-4 animate-spin text-indigo-500" />
+                        ) : (
+                          <div className="h-4 w-4 rounded-full border-2 border-gray-300"></div>
+                        )}
+                        <span className="text-sm font-medium">{step}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
 
         <div className="absolute bottom-4 left-4 z-10 bg-black bg-opacity-50 rounded-lg p-2 text-xs text-gray-300">
           <div>Mouse: Pan canvas</div>
