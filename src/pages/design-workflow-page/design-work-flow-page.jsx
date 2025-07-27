@@ -854,15 +854,44 @@ const AppBuilderWorkflow = () => {
 
     
 
-    // Generate the actual workflow
-    //setTimeout(() => {
-      //const { nodes: newNodes, connections: newConnections } = generateNodesFromPrompt(prompt);
+    
+    
       setNodes(response.nodes);
       setConnections(response.connections);
       setIsGenerating(false);
       setPrompt('');
       clearInterval(stepInterval);
-    //}, generationSteps.length * 300 + 500);
+      
+
+    }).catch((error)=>{
+
+if (!prompt.trim()) return;
+    
+    setIsGenerating(true);
+    setShowPromptModal(false);
+    setCurrentStep(0);
+    
+    // Simulate step-by-step generation
+    const stepInterval = setInterval(() => {
+      setCurrentStep(prev => {
+        if (prev >= generationSteps.length - 1) {
+          clearInterval(stepInterval);
+          return prev;
+        }
+        return prev + 1;
+      });
+    }, 1000);
+
+
+       setTimeout(() => {
+        const { nodes: newNodes, connections: newConnections } = generateNodesFromPrompt(prompt);
+
+        setNodes(newNodes);
+      setConnections(newConnections);
+      setIsGenerating(false);
+      setPrompt('');
+      clearInterval(stepInterval);
+       }, generationSteps.length * 300 + 500);
 
     })
 
