@@ -765,8 +765,8 @@ const AppBuilderWorkflow = () => {
 
   const createConnection = (sourceId, targetId, type) => ({
     id: `conn-${Math.random().toString(36).substr(2, 9)}`,
-    source: sourceId,
-    target: targetId,
+    sourceId: sourceId,
+    targetId: targetId,
     type
   });
 
@@ -963,7 +963,7 @@ if (!prompt.trim()) return;
 
   const deleteNode = (nodeId) => {
     setNodes(prev => prev.filter(node => node.id !== nodeId));
-    setConnections(prev => prev.filter(conn => conn.source !== nodeId && conn.target !== nodeId));
+    setConnections(prev => prev.filter(conn => conn.sourceId !== nodeId && conn.targetId !== nodeId));
     setSelectedNode(null);
   };
 
@@ -1102,7 +1102,7 @@ The system follows a microservices architecture with the following layers:
 
   const Node = ({ node }) => {
     const nodeType = nodeTypes[node.type];
-    const IconComponent = Icons[nodeType.icon] || null;
+    const IconComponent = Icons[node.icon] || null;
     const isSelected = selectedNode?.id === node.id;
     const isHovered = hoveredNode === node.id;
     const isConnectionSource = sourceNode === node.id;
@@ -1134,12 +1134,12 @@ The system follows a microservices architecture with the following layers:
             {IconComponent?<IconComponent className="h-5 w-5" />:null}
             <span style={{textWrap:'wrap'}} className="font-medium text-sm truncate">{node.data.label}</span>
           </div>
-          <div className="text-xs opacity-75">{nodeType.category}</div>
+          <div className="text-xs opacity-75">{node.type}</div>
         </div>
         
         {/* Node Body */}
         <div className="p-3">
-          <p className="text-xs text-gray-600 mb-2">{nodeType.description}</p>
+          <p className="text-xs text-gray-600 mb-2">{node.data.description}</p>
           {node.data.config && (
             <div className="space-y-1">
               {Object.entries(node.data.config).slice(0, 2).map(([key, value]) => (
@@ -1575,10 +1575,10 @@ The system follows a microservices architecture with the following layers:
                 <label className="block text-sm font-medium text-gray-700 mb-3">Active Connections</label>
                 <div className="space-y-2">
                   {connections
-                    .filter(conn => conn.source === selectedNode.id || conn.target === selectedNode.id)
+                    .filter(conn => conn.sourceId === selectedNode.id || conn.targetId === selectedNode.id)
                     .map((conn, index) => {
-                      const isSource = conn.source === selectedNode.id;
-                      const otherNodeId = isSource ? conn.target : conn.source;
+                      const isSource = conn.sourceId === selectedNode.id;
+                      const otherNodeId = isSource ? conn.targetId : conn.sourceId;
                       const otherNode = nodes.find(n => n.id === otherNodeId);
                       
                       return (
@@ -1605,7 +1605,7 @@ The system follows a microservices architecture with the following layers:
                         </div>
                       );
                     })}
-                  {connections.filter(conn => conn.source === selectedNode.id || conn.target === selectedNode.id).length === 0 && (
+                  {connections.filter(conn => conn.sourceId === selectedNode.id || conn.targetId === selectedNode.id).length === 0 && (
                     <div className="text-sm text-gray-500 text-center py-4">No connections</div>
                   )}
                 </div>
