@@ -791,7 +791,7 @@ const httpHandler = async (node, setNodes, setIsExecuting, data) => {
     // Add CORS proxy if needed
     //let finalUrl = url;
    // if (config.useCorsProxy) {
-      let finalUrl = `https://cors-anywhere.herokuapp.com/${url}`;
+      let finalUrl = `${url}`;
       // Alternative proxies:
       // finalUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`;
       // finalUrl = `https://corsproxy.io/?${encodeURIComponent(url)}`;
